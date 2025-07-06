@@ -341,14 +341,23 @@ class ConceertBot:
             favorites = await self.db.get_user_favorites(user_id)
             if favorites:
                 favorites_text = "📋 I tuoi gruppi preferiti:\n\n"
-                for i, band in enumerate(favorites, 1):
-                    favorites_text += f"{i}. 🎵 {band}\n"
+                favorites_text += "Clicca su un gruppo per cercare nuovi concerti in Italia:\n\n"
+                
+                keyboard = []
+                for band in favorites:
+                    keyboard.append([InlineKeyboardButton(
+                        f"🎵 {band}", 
+                        callback_data=f"search_{band}"
+                    )])
+                
+                keyboard.append([InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")])
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await query.edit_message_text(favorites_text, reply_markup=reply_markup)
             else:
                 favorites_text = "❌ Non hai ancora gruppi preferiti.\nUsa 'Aggiungi Gruppo' per aggiungerne uno!"
-            
-            keyboard = [[InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            await query.edit_message_text(favorites_text, reply_markup=reply_markup)
+                keyboard = [[InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await query.edit_message_text(favorites_text, reply_markup=reply_markup)
         
 
         elif query.data == "help":
@@ -527,6 +536,80 @@ class ConceertBot:
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             await query.edit_message_text(apps_text, reply_markup=reply_markup, parse_mode='Markdown')
+        
+        elif query.data.startswith("search_"):
+            band_name = query.data[7:]  # Remove "search_" prefix
+            
+            # Show searching message
+            keyboard = [[InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await query.edit_message_text(
+                f"🔍 Ricerca concerti in corso per '{band_name}'...\n\n"
+                f"Sto controllando tutte le fonti disponibili per trovare date future in Italia.",
+                reply_markup=reply_markup
+            )
+            
+            try:
+                # Search for concerts using multi-source search
+                concerts = await self.multi_source.search_all_sources(band_name, country_code="IT")
+                
+                if concerts:
+                    # Filter only future concerts
+                    from datetime import datetime, date
+                    today = date.today()
+                    future_concerts = []
+                    
+                    for concert in concerts:
+                        try:
+                            concert_date = datetime.strptime(concert['date'], '%Y-%m-%d').date()
+                            if concert_date >= today:
+                                future_concerts.append(concert)
+                        except:
+                            # If date parsing fails, include the concert anyway
+                            future_concerts.append(concert)
+                    
+                    if future_concerts:
+                        # Format and send concert information
+                        concerts_text = f"🎵 **Concerti trovati per {band_name}:**\n\n"
+                        
+                        for concert in future_concerts[:5]:  # Show max 5 concerts
+                            concerts_text += self.format_concert_message(concert) + "\n\n"
+                        
+                        if len(future_concerts) > 5:
+                            concerts_text += f"... e altri {len(future_concerts) - 5} concerti!\n\n"
+                        
+                        concerts_text += "📋 Torna ai tuoi gruppi preferiti per altre ricerche."
+                        
+                        keyboard = [
+                            [InlineKeyboardButton("📋 Lista Preferiti", callback_data="list_favorites")],
+                            [InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]
+                        ]
+                        reply_markup = InlineKeyboardMarkup(keyboard)
+                        
+                        await query.edit_message_text(concerts_text, reply_markup=reply_markup, parse_mode='Markdown')
+                    else:
+                        await query.edit_message_text(
+                            f"📅 Nessun concerto futuro trovato per '{band_name}' in Italia.\n\n"
+                            f"💡 Il bot continuerà a monitorare automaticamente e ti invierà notifiche quando saranno annunciati nuovi concerti.\n\n"
+                            f"🔍 Suggerimento: Verifica che il nome del gruppo sia scritto correttamente.",
+                            reply_markup=reply_markup
+                        )
+                else:
+                    await query.edit_message_text(
+                        f"😔 Nessun concerto trovato per '{band_name}' in Italia al momento.\n\n"
+                        f"⚠️ Il bot continuerà a monitorare automaticamente ogni 4 ore e ti invierà notifiche quando saranno annunciati nuovi concerti.\n\n"
+                        f"💡 Suggerimento: Verifica che il nome del gruppo sia scritto esattamente come sui biglietti ufficiali.",
+                        reply_markup=reply_markup
+                    )
+                    
+            except Exception as e:
+                logger.error(f"Error searching concerts for {band_name}: {e}")
+                await query.edit_message_text(
+                    f"❌ Errore durante la ricerca concerti per '{band_name}'.\n\n"
+                    f"Riprova più tardi o contatta l'assistenza se il problema persiste.",
+                    reply_markup=reply_markup
+                )
         
         elif query.data.startswith("remove_"):
             band_name = query.data[7:]  # Remove "remove_" prefix
