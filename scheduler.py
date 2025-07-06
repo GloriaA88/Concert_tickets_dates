@@ -58,17 +58,38 @@ class ConcertScheduler:
     def _schedule_concert_check(self):
         """Schedule a concert check"""
         if self.running:
-            asyncio.create_task(self._check_concerts())
+            # Create new event loop for the thread since we're in a different thread
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            loop.run_until_complete(self._check_concerts())
     
     def _schedule_cleanup(self):
         """Schedule database cleanup"""
         if self.running:
-            asyncio.create_task(self._cleanup_database())
+            # Create new event loop for the thread since we're in a different thread
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            loop.run_until_complete(self._cleanup_database())
     
     def _schedule_initial_check(self):
         """Schedule initial concert check (run once)"""
         if self.running:
-            asyncio.create_task(self._check_concerts())
+            # Create new event loop for the thread since we're in a different thread
+            try:
+                loop = asyncio.get_event_loop()
+            except RuntimeError:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+            
+            loop.run_until_complete(self._check_concerts())
             # Remove this job after first run
             schedule.clear('initial_check')
     

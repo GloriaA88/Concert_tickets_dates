@@ -32,7 +32,7 @@ class ConceertBot:
         self.application.add_handler(CommandHandler("addfavorite", self.add_favorite_command))
         self.application.add_handler(CommandHandler("removefavorite", self.remove_favorite_command))
         self.application.add_handler(CommandHandler("listfavorites", self.list_favorites_command))
-        self.application.add_handler(CommandHandler("findconcerts", self.find_concerts_command))
+        self.application.add_handler(CommandHandler("test", self.test_notifications_command))  # Test command
         self.application.add_handler(CallbackQueryHandler(self.button_callback))
         
         # Add message handler for band names
@@ -184,6 +184,40 @@ class ConceertBot:
             message = "😔 No upcoming concerts found for your favorite bands in Italy."
         
         await update.message.reply_text(message, parse_mode='HTML', disable_web_page_preview=True)
+    
+    async def test_notifications_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Test command to manually trigger concert check"""
+        user_id = update.effective_user.id
+        
+        await update.message.reply_text("🔍 Avvio test di notifiche... Controllando i concerti per i tuoi gruppi preferiti.")
+        
+        try:
+            # Get user's favorites
+            favorites = await self.db.get_user_favorites(user_id)
+            if not favorites:
+                await update.message.reply_text("❌ Non hai gruppi preferiti. Aggiungi alcuni gruppi prima di testare.")
+                return
+            
+            await update.message.reply_text(f"🎵 Cercando concerti per: {', '.join(favorites)}")
+            
+            # Check concerts for this specific user
+            new_concerts = []
+            for band in favorites:
+                concerts = await self.ticketmaster.search_concerts(band, country_code="IT")
+                
+                # For testing, don't check if already notified
+                new_concerts.extend(concerts)
+            
+            if new_concerts:
+                # Send notification
+                await self.send_concert_notification(user_id, new_concerts)
+                await update.message.reply_text(f"✅ Test completato! Trovati {len(new_concerts)} concerti. Notifica inviata.")
+            else:
+                await update.message.reply_text("😔 Nessun concerto trovato al momento per i tuoi gruppi preferiti in Italia. Il monitoraggio automatico continuerà ogni 4 ore.")
+                
+        except Exception as e:
+            logger.error(f"Error in test command: {e}")
+            await update.message.reply_text(f"❌ Errore durante il test: {e}")
     
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle text messages (band names)"""
