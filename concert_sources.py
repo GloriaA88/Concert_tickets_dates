@@ -163,211 +163,16 @@ class MultiSourceConcertFinder:
         """Search database of known announced concerts"""
         concerts = []
         
-        # Database of known announced concerts in Italy
+        # CRITICAL: Only add concerts that are OFFICIALLY ANNOUNCED and VERIFIED
+        # This database should remain empty unless concerts are confirmed through official sources
+        # If no official events exist, this returns empty so the bot reports no events
         known_concerts_db = {
-            'metallica': [
-                {
-                    'id': 'metallica_bologna_2026',
-                    'name': 'Metallica M72 World Tour',
-                    'date': '2026-06-03',
-                    'time': '20:30',
-                    'venue': 'Stadio Renato Dall\'Ara',
-                    'city': 'Bologna',
-                    'country': 'Italy',
-                    'url': 'https://www.ticketmaster.it/artist/metallica-tickets/1240',
-                    'source': 'Official Announcement',
-                    'verified': True,
-                    'support_acts': ['Gojira', 'Knocked Loose'],
-                    'ticket_info': 'Presale: 27 May 2025 | General: 30 May 2025'
-                },
-                {
-                    'id': 'metallica_milano_2026',
-                    'name': 'Metallica M72 World Tour',
-                    'date': '2026-06-06',
-                    'time': '20:30',
-                    'venue': 'Stadio San Siro',
-                    'city': 'Milano',
-                    'country': 'Italy',
-                    'url': 'https://www.ticketmaster.it/artist/metallica-tickets/1240',
-                    'source': 'Official Announcement',
-                    'verified': True,
-                    'support_acts': ['Gojira', 'Knocked Loose'],
-                    'ticket_info': 'Presale: 27 May 2025 | General: 30 May 2025'
-                }
-            ],
-            'linkin park': [
-                {
-                    'id': 'linkin_park_milano_2025',
-                    'name': 'Linkin Park - From Zero World Tour',
-                    'date': '2025-06-24',
-                    'time': '21:00',
-                    'venue': 'Ippodromo SNAI La Maura (I-Days Milano)',
-                    'city': 'Milano',
-                    'country': 'Italy',
-                    'url': 'https://www.ticketmaster.it/artist/linkin-park-tickets/10021',
-                    'source': 'Official Announcement',
-                    'verified': True,
-                    'ticket_info': 'SOLD OUT - Esaurito in poche ore'
-                },
-                {
-                    'id': 'linkin_park_firenze_2026',
-                    'name': 'Linkin Park - From Zero World Tour',
-                    'date': '2026-06-26',
-                    'time': '21:00',
-                    'venue': 'Visarno Arena',
-                    'city': 'Firenze',
-                    'country': 'Italy',
-                    'url': 'https://www.ticketmaster.it/artist/linkin-park-tickets/10021',
-                    'source': 'Official Announcement',
-                    'verified': True,
-                    'ticket_info': 'Biglietti disponibili dal 6 giugno 2025'
-                }
-            ],
-            'cesare cremonini': [
-                {
-                    'id': 'cremonini_roma_circo_massimo_2026',
-                    'name': 'Cesare Cremonini - CREMONINI LIVE26',
-                    'date': '2026-06-06',
-                    'time': '21:00',
-                    'venue': 'Circo Massimo',
-                    'city': 'Roma',
-                    'country': 'Italy',
-                    'url': 'https://www.ticketmaster.it/artist/cesare-cremonini-tickets/1012807',
-                    'source': 'Official Announcement',
-                    'verified': True,
-                    'ticket_info': 'Biglietti disponibili - Tour 2026'
-                },
-                {
-                    'id': 'cremonini_milano_ippodromo_2026',
-                    'name': 'Cesare Cremonini - CREMONINI LIVE26',
-                    'date': '2026-06-10',
-                    'time': '21:00',
-                    'venue': 'Ippodromo SNAI La Maura',
-                    'city': 'Milano',
-                    'country': 'Italy',
-                    'url': 'https://www.ticketmaster.it/artist/cesare-cremonini-tickets/1012807',
-                    'source': 'Official Announcement',
-                    'verified': True,
-                    'ticket_info': 'Biglietti disponibili - Tour 2026'
-                },
-                {
-                    'id': 'cremonini_imola_autodromo_2026',
-                    'name': 'Cesare Cremonini - CREMONINI LIVE26',
-                    'date': '2026-06-13',
-                    'time': '21:00',
-                    'venue': 'Autodromo Enzo e Dino Ferrari',
-                    'city': 'Imola',
-                    'country': 'Italy',
-                    'url': 'https://www.ticketmaster.it/artist/cesare-cremonini-tickets/1012807',
-                    'source': 'Official Announcement',
-                    'verified': True,
-                    'ticket_info': 'Biglietti disponibili - Tour 2026'
-                },
-                {
-                    'id': 'cremonini_firenze_visarno_2026',
-                    'name': 'Cesare Cremonini - CREMONINI LIVE26',
-                    'date': '2026-06-17',
-                    'time': '21:00',
-                    'venue': 'Visarno Arena',
-                    'city': 'Firenze',
-                    'country': 'Italy',
-                    'url': 'https://www.ticketmaster.it/artist/cesare-cremonini-tickets/1012807',
-                    'source': 'Official Announcement',
-                    'verified': True,
-                    'ticket_info': 'Biglietti disponibili - Tour 2026'
-                }
-            ],
-            'falling in reverse': [
-                {
-                    'id': 'falling_in_reverse_milano_2025',
-                    'name': 'Falling in Reverse - European Tour',
-                    'date': '2025-10-15',
-                    'time': '20:00',
-                    'venue': 'Alcatraz',
-                    'city': 'Milano',
-                    'country': 'Italy',
-                    'url': 'https://www.ticketmaster.it/artist/falling-in-reverse-tickets/1052341',
-                    'source': 'Official Announcement',
-                    'verified': True,
-                    'ticket_info': 'Biglietti disponibili'
-                }
-            ],
-            'green day': [
-                {
-                    'id': 'green_day_milano_2025',
-                    'name': 'Green Day - Saviors Tour',
-                    'date': '2025-09-12',
-                    'time': '20:30',
-                    'venue': 'Stadio San Siro',
-                    'city': 'Milano',
-                    'country': 'Italy',
-                    'url': 'https://www.ticketmaster.it/artist/green-day-tickets/864165',
-                    'source': 'Official Announcement',
-                    'verified': True,
-                    'support_acts': ['The Smashing Pumpkins', 'Rancid'],
-                    'ticket_info': 'Biglietti disponibili'
-                }
-            ],
-            'pearl jam': [
-                {
-                    'id': 'pearl_jam_roma_2025',
-                    'name': 'Pearl Jam - World Tour',
-                    'date': '2025-11-20',
-                    'time': '20:00',
-                    'venue': 'Palazzo dello Sport',
-                    'city': 'Roma',
-                    'country': 'Italy',
-                    'url': 'https://www.ticketmaster.it/artist/pearl-jam-tickets/734373',
-                    'source': 'Official Announcement',
-                    'verified': True,
-                    'ticket_info': 'Biglietti disponibili'
-                }
-            ],
-            'coldplay': [
-                {
-                    'id': 'coldplay_roma_2025',
-                    'name': 'Coldplay - Music of the Spheres Tour',
-                    'date': '2025-07-28',
-                    'time': '20:30',
-                    'venue': 'Stadio Olimpico',
-                    'city': 'Roma',
-                    'country': 'Italy',
-                    'url': 'https://www.ticketmaster.it/artist/coldplay-tickets/806334',
-                    'source': 'Official Announcement',
-                    'verified': True,
-                    'ticket_info': 'SOLD OUT - Lista d\'attesa attiva'
-                }
-            ],
-            'imagine dragons': [
-                {
-                    'id': 'imagine_dragons_milano_2025',
-                    'name': 'Imagine Dragons - LOOM World Tour',
-                    'date': '2025-08-15',
-                    'time': '20:00',
-                    'venue': 'Forum di Assago',
-                    'city': 'Milano',
-                    'country': 'Italy',
-                    'url': 'https://www.ticketmaster.it/artist/imagine-dragons-tickets/1221575',
-                    'source': 'Official Announcement',
-                    'verified': True,
-                    'ticket_info': 'Biglietti disponibili'
-                }
-            ],
-            'u2': [
-                {
-                    'id': 'u2_milano_2025',
-                    'name': 'U2 - UV Achtung Baby Live',
-                    'date': '2025-09-30',
-                    'time': '20:00',
-                    'venue': 'Stadio San Siro',
-                    'city': 'Milano',
-                    'country': 'Italy',
-                    'url': 'https://www.ticketmaster.it/artist/u2-tickets/805679',
-                    'source': 'Official Announcement',
-                    'verified': True,
-                    'ticket_info': 'Biglietti disponibili'
-                }
-            ]
+            # Currently empty to prevent fake concert data
+            # Only add entries here if they are:
+            # 1. Officially announced by the artist or venue
+            # 2. Available on official ticketing platforms
+            # 3. Verified with reliable sources
+            # 4. Actually happening in Italy on the specified dates
         }
         
         # Normalize artist name for matching with multiple search patterns
@@ -402,18 +207,8 @@ class MultiSourceConcertFinder:
     
     def create_sample_concert(self, artist_name: str) -> Dict:
         """
-        Create a sample concert notification to demonstrate the system
-        (for testing purposes when no real concerts are found)
+        DEPRECATED: This function created fake concert data which violates data integrity.
+        Always return None to prevent fake concert creation.
         """
-        return {
-            'id': f'sample_{artist_name.lower().replace(" ", "_")}',
-            'name': f'{artist_name} - Tour 2025',
-            'date': '2025-12-15',
-            'venue': 'Palazzo dello Sport',
-            'city': 'Roma',
-            'country': 'Italy',
-            'url': 'https://www.ticketmaster.it/artist/sample',
-            'source': 'Sample',
-            'verified': False,
-            'note': 'Questo è un esempio di come appariranno le notifiche quando saranno trovati concerti reali.'
-        }
+        # Never create fake concerts - always return None to maintain data integrity
+        return None

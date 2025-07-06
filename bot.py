@@ -611,17 +611,19 @@ class ConceertBot:
                         await query.edit_message_text(concerts_text, reply_markup=reply_markup, parse_mode='HTML')
                     else:
                         await query.edit_message_text(
-                            f"📅 Nessun concerto futuro trovato per '{band_name}' in Italia.\n\n"
-                            f"💡 Il bot continuerà a monitorare automaticamente e ti invierà notifiche quando saranno annunciati nuovi concerti.\n\n"
+                            f"📅 <b>Nessun evento ufficiale futuro</b> trovato per '{band_name}' in Italia.\n\n"
+                            f"💡 Il bot monitora solo concerti <b>ufficialmente annunciati</b> e ti invierà notifiche quando saranno confermati nuovi eventi.\n\n"
                             f"🔍 Suggerimento: Verifica che il nome del gruppo sia scritto correttamente.",
-                            reply_markup=reply_markup
+                            reply_markup=reply_markup,
+                            parse_mode='HTML'
                         )
                 else:
                     await query.edit_message_text(
-                        f"😔 Nessun concerto trovato per '{band_name}' in Italia al momento.\n\n"
-                        f"⚠️ Il bot continuerà a monitorare automaticamente ogni 4 ore e ti invierà notifiche quando saranno annunciati nuovi concerti.\n\n"
+                        f"😔 <b>Nessun evento ufficiale</b> trovato per '{band_name}' in Italia al momento.\n\n"
+                        f"⚠️ Il bot monitora solo concerti <b>ufficialmente annunciati</b> e ti invierà notifiche quando saranno confermati nuovi eventi.\n\n"
                         f"💡 Suggerimento: Verifica che il nome del gruppo sia scritto esattamente come sui biglietti ufficiali.",
-                        reply_markup=reply_markup
+                        reply_markup=reply_markup,
+                        parse_mode='HTML'
                     )
                     
             except Exception as e:
