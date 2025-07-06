@@ -41,24 +41,7 @@ class VerifiedConcertDatabase:
                 'price_range': 'TBA',
                 'on_sale': False
             },
-            # Green Day - OFFICIAL Firenze Rocks 2026 (REAL DATA FROM FIRENZE ROCKS)
-            {
-                'id': 'green_day_florence_2026_06_15',
-                'name': 'Green Day - The Saviors Tour (Firenze Rocks)',
-                'date': '2026-06-15',
-                'time': '20:00',
-                'venue': 'Visarno Arena',
-                'city': 'Firenze',
-                'country': 'Italy',
-                'url': 'https://www.ticketmaster.it/artist/green-day-tickets/2686',
-                'source': 'Official Firenze Rocks & TicketMaster Italy',
-                'verified': True,
-                'artist': 'Green Day',
-                'support_acts': ['Weezer', 'Shame', 'Bad Nerves'],
-                'ticket_info': 'Tickets available via TicketMaster Italy',
-                'price_range': 'TBA',
-                'on_sale': True
-            },
+
             # Linkin Park - OFFICIAL From Zero World Tour Milano 2026 (REAL DATA)
             {
                 'id': 'linkin_park_milano_2026_06_24',
