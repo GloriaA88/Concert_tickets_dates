@@ -2,15 +2,13 @@
 Configuration management for the Italian Concert Bot
 """
 import os
-from dotenv import load_dotenv
 import logging
 
 logger = logging.getLogger(__name__)
 
 class Config:
     def __init__(self):
-        # Load environment variables from .env file
-        load_dotenv()
+        # Environment variables are available directly in Replit
         
         # Telegram Bot Configuration
         self.telegram_token = os.getenv('TELEGRAM_BOT_TOKEN')
