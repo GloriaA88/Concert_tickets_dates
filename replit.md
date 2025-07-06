@@ -120,6 +120,8 @@ The application follows a modular architecture with clear separation of concerns
   - Green Day: June 15, 2026, Firenze (Visarno Arena) - Official Firenze Rocks
   - Linkin Park: June 24, 2026, Milano (Ippodromo SNAI) - Official From Zero Tour
   - Linkin Park: June 26, 2026, Firenze (Ippodromo del Visarno) - Official From Zero Tour
+- July 06, 2025: **DATE FORMATTING FIX**: Corrected date display to show proper Italian format (3 giugno 2026)
+- July 06, 2025: **REMOVED FAKE DATA**: Eliminated test function that created sample concerts, ensuring 100% authentic data only
 
 ## User Preferences
 

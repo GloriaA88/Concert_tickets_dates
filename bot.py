@@ -223,17 +223,16 @@ class ConceertBot:
             for band in favorites:
                 concerts = await self.multi_source.search_all_sources(band, country_code="IT")
                 
-                # For testing, if no real concerts found, create a sample to show how notifications work
-                if not concerts:
-                    sample_concert = self.multi_source.create_sample_concert(band)
-                    concerts = [sample_concert]
+                # Only add real concerts - NO FAKE DATA
+                if concerts:
+                    new_concerts.extend(concerts)
                     await update.message.reply_text(
-                        f"⚠️ Nessun concerto reale trovato per '{band}'. "
-                        f"Invio esempio di notifica per mostrare come funziona il sistema."
+                        f"✅ Trovati {len(concerts)} concerti ufficiali per '{band}'"
                     )
-                
-                # For testing, don't check if already notified
-                new_concerts.extend(concerts)
+                else:
+                    await update.message.reply_text(
+                        f"❌ Nessun concerto ufficiale trovato per '{band}' in Italia."
+                    )
             
             # Add back button to test results
             reply_markup = InlineKeyboardMarkup([
@@ -717,11 +716,14 @@ class ConceertBot:
         
         message = f"🎸 <b>{name}</b>\n"
         
+        # Format date in Italian format
+        formatted_date = self._format_date_italian(date)
+        
         # Date and time
         if time:
-            message += f"📅 {date} ore {time}\n"
+            message += f"📅 {formatted_date} ore {time}\n"
         else:
-            message += f"📅 {date}\n"
+            message += f"📅 {formatted_date}\n"
         
         message += f"🏟️ {venue}, {city}\n"
         
@@ -744,6 +746,32 @@ class ConceertBot:
             message += f"🔍 Fonte: {source}\n"
         
         return message
+    
+    def _format_date_italian(self, date_str: str) -> str:
+        """Format date from YYYY-MM-DD to Italian format"""
+        if not date_str or date_str == 'Da Definire':
+            return date_str
+            
+        try:
+            from datetime import datetime
+            # Parse date in format YYYY-MM-DD
+            date_obj = datetime.strptime(date_str, '%Y-%m-%d')
+            
+            # Italian month names
+            italian_months = [
+                'gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno',
+                'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'
+            ]
+            
+            # Format as "15 giugno 2026"
+            day = date_obj.day
+            month = italian_months[date_obj.month - 1]
+            year = date_obj.year
+            
+            return f"{day} {month} {year}"
+        except:
+            # If parsing fails, return original date
+            return date_str
     
     async def send_concert_notification(self, user_id: int, concerts: list):
         """Send concert notifications to a user"""
