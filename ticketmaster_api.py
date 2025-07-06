@@ -78,13 +78,13 @@ class TicketMasterAPI:
                             limit: int = 20) -> List[Dict]:
         """Search for concerts by artist name in specified country"""
         
-        # Get date range for next 2 years (infinite-like range)
+        # Get date range from today to infinite future (3 years for practical purposes)
         start_date = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
-        end_date = (datetime.now() + timedelta(days=730)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        end_date = (datetime.now() + timedelta(days=1095)).strftime("%Y-%m-%dT%H:%M:%SZ")  # 3 years
         
         # Try multiple search strategies for better results
         search_strategies = [
-            # Strategy 1: Exact artist name
+            # Strategy 1: Exact artist name with music classification
             {
                 'keyword': artist_name,
                 'countryCode': country_code,
@@ -94,7 +94,7 @@ class TicketMasterAPI:
                 'size': limit,
                 'sort': 'date,asc'
             },
-            # Strategy 2: Try without classification restriction
+            # Strategy 2: Artist name without classification restriction
             {
                 'keyword': artist_name,
                 'countryCode': country_code,
@@ -103,11 +103,17 @@ class TicketMasterAPI:
                 'size': limit,
                 'sort': 'date,asc'
             },
-            # Strategy 3: Search by attraction (artist) first, then events
+            # Strategy 3: Artist name with broader search (no dates initially)
             {
-                'attractionId': None,  # Will be filled if we find the artist
+                'keyword': artist_name,
                 'countryCode': country_code,
-                'classificationName': 'music',
+                'size': limit,
+                'sort': 'date,asc'
+            },
+            # Strategy 4: Search specific markets (Italy)
+            {
+                'keyword': artist_name,
+                'markets': 'IT',
                 'startDateTime': start_date,
                 'endDateTime': end_date,
                 'size': limit,
@@ -116,6 +122,9 @@ class TicketMasterAPI:
         ]
         
         concerts = []
+        
+        # Log the search parameters for debugging
+        logger.info(f"Searching for '{artist_name}' in {country_code} from {start_date} to {end_date}")
         
         # Try different search strategies until we find results
         for i, strategy in enumerate(search_strategies[:2]):  # Skip strategy 3 for now

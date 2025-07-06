@@ -756,12 +756,16 @@ class ConceertBot:
             message += self.format_concert_message(concert) + "\n"
         
         try:
-            await self.application.bot.send_message(
-                chat_id=user_id,
-                text=message,
-                parse_mode='HTML',
-                disable_web_page_preview=True
-            )
+            if self.application and self.application.bot:
+                await self.application.bot.send_message(
+                    chat_id=user_id,
+                    text=message,
+                    parse_mode='HTML',
+                    disable_web_page_preview=True
+                )
+                logger.info(f"Concert notification sent to user {user_id}")
+            else:
+                logger.error(f"Cannot send notification - bot application not available")
         except Exception as e:
             logger.error(f"Failed to send notification to user {user_id}: {e}")
     
