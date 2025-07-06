@@ -63,7 +63,6 @@ class ConceertBot:
             [InlineKeyboardButton("➕ Aggiungi Gruppo", callback_data="add_band")],
             [InlineKeyboardButton("➖ Rimuovi Gruppo", callback_data="remove_band")],
             [InlineKeyboardButton("📋 Lista Gruppi Preferiti", callback_data="list_favorites")],
-            [InlineKeyboardButton("🔍 Cerca Concerti", callback_data="find_concerts")],
             [InlineKeyboardButton("ℹ️ Aiuto", callback_data="help")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -82,8 +81,7 @@ class ConceertBot:
         keyboard = [
             [InlineKeyboardButton("➕ Aggiungi Gruppo", callback_data="add_band")],
             [InlineKeyboardButton("➖ Rimuovi Gruppo", callback_data="remove_band")],
-            [InlineKeyboardButton("📋 Lista Gruppi Preferiti", callback_data="list_favorites")],
-            [InlineKeyboardButton("🔍 Cerca Concerti", callback_data="find_concerts")]
+            [InlineKeyboardButton("📋 Lista Gruppi Preferiti", callback_data="list_favorites")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
@@ -93,12 +91,11 @@ class ConceertBot:
             "• Aggiungi gruppi ai tuoi preferiti\n"
             "• Rimuovi gruppi dalla lista\n"
             "• Visualizza la lista dei tuoi gruppi preferiti\n\n"
-            "🔍 Ricerca Concerti:\n"
-            "• Cerca concerti dei tuoi gruppi preferiti in Italia\n\n"
-            "🔔 Notifiche Automatiche:\n"
-            "• Controllo automatico ogni 4 ore\n"
-            "• Notifiche immediate per nuovi concerti\n"
-            "• Link diretto per acquistare i biglietti\n\n"
+            "🔔 Monitoraggio Automatico:\n"
+            "• Controllo automatico ogni 4 ore per nuovi concerti\n"
+            "• Notifiche immediate quando trovo concerti in Italia\n"
+            "• Link diretto per acquistare i biglietti\n"
+            "• Monitoraggio continuo senza intervento manuale\n\n"
             "Usa il menu qui sotto per iniziare:"
         )
         
@@ -207,7 +204,6 @@ class ConceertBot:
                 [InlineKeyboardButton("➕ Aggiungi Gruppo", callback_data="add_band")],
                 [InlineKeyboardButton("➖ Rimuovi Gruppo", callback_data="remove_band")],
                 [InlineKeyboardButton("📋 Lista Gruppi Preferiti", callback_data="list_favorites")],
-                [InlineKeyboardButton("🔍 Cerca Concerti", callback_data="find_concerts")],
                 [InlineKeyboardButton("ℹ️ Aiuto", callback_data="help")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -269,36 +265,7 @@ class ConceertBot:
             reply_markup = InlineKeyboardMarkup(keyboard)
             await query.edit_message_text(favorites_text, reply_markup=reply_markup)
         
-        elif query.data == "find_concerts":
-            favorites = await self.db.get_user_favorites(user_id)
-            if not favorites:
-                keyboard = [[InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]]
-                reply_markup = InlineKeyboardMarkup(keyboard)
-                await query.edit_message_text(
-                    "❌ Non hai ancora gruppi preferiti.\nUsa 'Aggiungi Gruppo' per aggiungerne uno!",
-                    reply_markup=reply_markup
-                )
-                return
-            
-            await query.edit_message_text("🔍 Cercando concerti... Attendere prego.")
-            
-            all_concerts = []
-            for band in favorites:
-                concerts = await self.ticketmaster.search_concerts(band, country_code="IT")
-                all_concerts.extend(concerts)
-            
-            keyboard = [[InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            
-            if all_concerts:
-                message = "🎵 Concerti trovati per i tuoi gruppi preferiti:\n\n"
-                for concert in all_concerts[:10]:  # Limit to 10 concerts
-                    message += self.format_concert_message(concert) + "\n"
-            else:
-                message = "😔 Nessun concerto trovato per i tuoi gruppi preferiti in Italia."
-            
-            await query.edit_message_text(message, parse_mode='HTML', reply_markup=reply_markup)
-        
+
         elif query.data == "help":
             await self.help_command(update, context)
         
@@ -308,7 +275,6 @@ class ConceertBot:
                 [InlineKeyboardButton("➕ Aggiungi Gruppo", callback_data="add_band")],
                 [InlineKeyboardButton("➖ Rimuovi Gruppo", callback_data="remove_band")],
                 [InlineKeyboardButton("📋 Lista Gruppi Preferiti", callback_data="list_favorites")],
-                [InlineKeyboardButton("🔍 Cerca Concerti", callback_data="find_concerts")],
                 [InlineKeyboardButton("ℹ️ Aiuto", callback_data="help")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -338,26 +304,18 @@ class ConceertBot:
     
     async def add_favorite_band(self, user_id: int, band_name: str, update: Update):
         """Add a band to user's favorites"""
-        # First, verify the band exists in TicketMaster
-        concerts = await self.ticketmaster.search_concerts(band_name, limit=1)
-        
         # Create main menu keyboard for response
         keyboard = [[InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        if not concerts:
-            await update.message.reply_text(
-                f"⚠️ Non ho trovato '{band_name}' su TicketMaster. "
-                f"Controlla l'ortografia e riprova.",
-                reply_markup=reply_markup
-            )
-            return
-        
+        # Add the band directly to favorites without pre-verification
+        # The automatic monitoring will check if concerts exist
         success = await self.db.add_favorite_band(user_id, band_name)
         
         if success:
             await update.message.reply_text(
-                f"✅ '{band_name}' aggiunto ai tuoi preferiti!",
+                f"✅ '{band_name}' aggiunto ai tuoi preferiti!\n\n"
+                f"🔔 Ti invierò automaticamente notifiche quando troverò concerti di questo gruppo in Italia.",
                 reply_markup=reply_markup
             )
         else:

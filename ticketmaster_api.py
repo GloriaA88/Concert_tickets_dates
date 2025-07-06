@@ -82,30 +82,77 @@ class TicketMasterAPI:
         start_date = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
         end_date = (datetime.now() + timedelta(days=180)).strftime("%Y-%m-%dT%H:%M:%SZ")
         
-        params = {
-            'keyword': artist_name,
-            'countryCode': country_code,
-            'classificationName': 'music',
-            'startDateTime': start_date,
-            'endDateTime': end_date,
-            'size': limit,
-            'sort': 'date,asc'
-        }
-        
-        response = await self._make_request('events.json', params)
-        
-        if not response:
-            return []
+        # Try multiple search strategies for better results
+        search_strategies = [
+            # Strategy 1: Exact artist name
+            {
+                'keyword': artist_name,
+                'countryCode': country_code,
+                'classificationName': 'music',
+                'startDateTime': start_date,
+                'endDateTime': end_date,
+                'size': limit,
+                'sort': 'date,asc'
+            },
+            # Strategy 2: Try without classification restriction
+            {
+                'keyword': artist_name,
+                'countryCode': country_code,
+                'startDateTime': start_date,
+                'endDateTime': end_date,
+                'size': limit,
+                'sort': 'date,asc'
+            },
+            # Strategy 3: Search by attraction (artist) first, then events
+            {
+                'attractionId': None,  # Will be filled if we find the artist
+                'countryCode': country_code,
+                'classificationName': 'music',
+                'startDateTime': start_date,
+                'endDateTime': end_date,
+                'size': limit,
+                'sort': 'date,asc'
+            }
+        ]
         
         concerts = []
-        events = response.get('_embedded', {}).get('events', [])
         
-        for event in events:
-            concert = self._parse_event(event)
-            if concert:
-                concerts.append(concert)
+        # Try different search strategies until we find results
+        for i, strategy in enumerate(search_strategies[:2]):  # Skip strategy 3 for now
+            logger.info(f"Trying search strategy {i+1} for '{artist_name}'")
+            response = await self._make_request('events.json', strategy)
+            
+            if response and response.get('_embedded', {}).get('events'):
+                events = response.get('_embedded', {}).get('events', [])
+                
+                for event in events:
+                    concert = self._parse_event(event)
+                    if concert:
+                        concerts.append(concert)
+                
+                logger.info(f"Found {len(concerts)} concerts for '{artist_name}' in {country_code} using strategy {i+1}")
+                break
+            else:
+                logger.info(f"No results found with strategy {i+1} for '{artist_name}'")
         
-        logger.info(f"Found {len(concerts)} concerts for '{artist_name}' in {country_code}")
+        # If no concerts found with regular search, try broader search
+        if not concerts:
+            logger.info(f"Trying broader search for '{artist_name}'")
+            broad_params = {
+                'keyword': artist_name,
+                'countryCode': country_code,
+                'size': limit
+            }
+            response = await self._make_request('events.json', broad_params)
+            
+            if response and response.get('_embedded', {}).get('events'):
+                events = response.get('_embedded', {}).get('events', [])
+                for event in events:
+                    concert = self._parse_event(event)
+                    if concert:
+                        concerts.append(concert)
+                logger.info(f"Broad search found {len(concerts)} events for '{artist_name}'")
+        
         return concerts
     
     def _parse_event(self, event: dict) -> Optional[Dict]:
