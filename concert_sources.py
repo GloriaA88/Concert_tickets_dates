@@ -48,7 +48,7 @@ class MultiSourceConcertFinder:
         logger.info(f"Starting Italian concert search for {artist_name}")
         all_concerts = []
         
-        # 1. PRIORITY: Verified concert database (manually verified authentic Italian data)
+        # 1. Check verified concert database (manually verified authentic Italian data)
         try:
             verified_concerts = self.verified_db.search_concerts(artist_name, country_code)
             if verified_concerts:
@@ -62,11 +62,31 @@ class MultiSourceConcertFinder:
                 if italian_future_concerts:
                     all_concerts.extend(italian_future_concerts)
                     logger.info(f"Verified database found {len(italian_future_concerts)} future Italian concerts for {artist_name}")
-                    return italian_future_concerts
         except Exception as e:
             logger.error(f"Verified database search error for {artist_name}: {e}")
         
-        # 2. FALLBACK: Official band websites (web scraping for Italian venues only)
+        # 2. Check TicketMaster API for real-time concert data
+        try:
+            ticketmaster_concerts = await self.ticketmaster.search_concerts(artist_name, country_code)
+            if ticketmaster_concerts:
+                # Filter for Italian future events
+                italian_tm_concerts = [
+                    concert for concert in ticketmaster_concerts 
+                    if concert.get('country', '').upper() == 'ITALY' and 
+                    self._is_future_event(concert.get('date', ''))
+                ]
+                
+                if italian_tm_concerts:
+                    all_concerts.extend(italian_tm_concerts)
+                    logger.info(f"TicketMaster API found {len(italian_tm_concerts)} future Italian concerts for {artist_name}")
+                else:
+                    logger.info(f"TicketMaster API search completed but no future Italian concerts found for {artist_name}")
+            else:
+                logger.info(f"TicketMaster API returned no results for {artist_name}")
+        except Exception as e:
+            logger.error(f"TicketMaster API search error for {artist_name}: {e}")
+        
+        # 3. Check official band websites (web scraping for Italian venues only)
         try:
             official_concerts = await self.official_scraper.search_official_concerts(artist_name, country_code)
             if official_concerts:
@@ -80,14 +100,24 @@ class MultiSourceConcertFinder:
                 if italian_concerts:
                     all_concerts.extend(italian_concerts)
                     logger.info(f"Official website found {len(italian_concerts)} future Italian concerts for {artist_name}")
-                    return italian_concerts
         except Exception as e:
             logger.error(f"Official website search error for {artist_name}: {e}")
         
-        if not all_concerts:
+        # Remove duplicates based on concert ID or similar attributes
+        unique_concerts = []
+        seen_concerts = set()
+        for concert in all_concerts:
+            concert_key = f"{concert.get('name', '')}-{concert.get('date', '')}-{concert.get('venue', '')}"
+            if concert_key not in seen_concerts:
+                seen_concerts.add(concert_key)
+                unique_concerts.append(concert)
+        
+        if unique_concerts:
+            logger.info(f"Total unique Italian concerts found for {artist_name}: {len(unique_concerts)}")
+        else:
             logger.info(f"No authentic Italian concerts found for {artist_name} - monitoring continues")
         
-        return all_concerts
+        return unique_concerts
     
     def _is_future_event(self, date_str: str) -> bool:
         """Check if event date is in the future"""
@@ -172,7 +202,7 @@ class MultiSourceConcertFinder:
     # REMOVED: Duplicate concert database that could cause date conflicts
     # All authentic concert data now exclusively from verified_concert_database.py
     
-    def create_sample_concert(self, artist_name: str) -> Dict:
+    def create_sample_concert(self, artist_name: str) -> Optional[Dict]:
         """
         DEPRECATED: This function created fake concert data which violates data integrity.
         Always return None to prevent fake concert creation.
