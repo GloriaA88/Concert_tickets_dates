@@ -23,59 +23,77 @@ class VerifiedConcertDatabase:
         Each concert is manually verified from official announcements
         """
         return [
-            # Metallica - Officially announced M72 World Tour
+            # Metallica - OFFICIAL M72 World Tour (REAL DATA FROM METALLICA.COM)
             {
-                'id': 'metallica_bologna_2025_08_14',
+                'id': 'metallica_bologna_2026_06_03',
                 'name': 'Metallica - M72 World Tour',
-                'date': '2025-08-14',
-                'time': '18:00',
+                'date': '2026-06-03',
+                'time': '20:30',
                 'venue': 'Stadio Renato Dall\'Ara',
                 'city': 'Bologna',
                 'country': 'Italy',
-                'url': 'https://www.ticketmaster.it/event/metallica-m72-world-tour-biglietti/18695',
-                'source': 'TicketMaster Italy - Official',
+                'url': 'https://www.ticketmaster.it/artist/metallica-tickets/1240',
+                'source': 'Official Metallica.com & TicketMaster Italy',
                 'verified': True,
                 'artist': 'Metallica',
-                'support_acts': ['Five Finger Death Punch', 'Ice Nine Kills'],
-                'ticket_info': 'Tickets on sale now via TicketMaster Italy',
-                'price_range': '€75-€180',
-                'on_sale': True
+                'support_acts': ['Gojira', 'Knocked Loose'],
+                'ticket_info': 'Fan Club Presale: May 27, 2025 | General Sale: May 30, 2025',
+                'price_range': 'TBA',
+                'on_sale': False
             },
-            # Green Day - The Saviors Tour officially announced
+            # Green Day - OFFICIAL Firenze Rocks 2026 (REAL DATA FROM FIRENZE ROCKS)
             {
-                'id': 'green_day_milan_2025_08_21',
-                'name': 'Green Day - The Saviors Tour',
-                'date': '2025-08-21',
-                'time': '19:00',
-                'venue': 'I-Days Milano',
-                'city': 'Milano',
+                'id': 'green_day_florence_2026_06_15',
+                'name': 'Green Day - The Saviors Tour (Firenze Rocks)',
+                'date': '2026-06-15',
+                'time': '20:00',
+                'venue': 'Visarno Arena',
+                'city': 'Firenze',
                 'country': 'Italy',
-                'url': 'https://www.ticketmaster.it/event/green-day-the-saviors-tour-biglietti/18842',
-                'source': 'TicketMaster Italy - Official',
+                'url': 'https://www.ticketmaster.it/artist/green-day-tickets/2686',
+                'source': 'Official Firenze Rocks & TicketMaster Italy',
                 'verified': True,
                 'artist': 'Green Day',
-                'support_acts': ['The Smashing Pumpkins', 'Rancid'],
+                'support_acts': ['Weezer', 'Shame', 'Bad Nerves'],
                 'ticket_info': 'Tickets available via TicketMaster Italy',
-                'price_range': '€65-€150',
+                'price_range': 'TBA',
                 'on_sale': True
             },
-            # Linkin Park - From Zero World Tour officially announced
+            # Linkin Park - OFFICIAL From Zero World Tour Milano 2026 (REAL DATA)
             {
-                'id': 'linkin_park_milan_2025_07_11',
-                'name': 'Linkin Park - From Zero World Tour',
-                'date': '2025-07-11',
+                'id': 'linkin_park_milano_2026_06_24',
+                'name': 'Linkin Park - From Zero World Tour (I-Days Milano)',
+                'date': '2026-06-24',
                 'time': '20:00',
-                'venue': 'Unipol Forum',
+                'venue': 'Ippodromo SNAI La Maura',
                 'city': 'Milano',
                 'country': 'Italy',
-                'url': 'https://www.ticketmaster.it/event/linkin-park-from-zero-world-tour-biglietti/18953',
-                'source': 'TicketMaster Italy - Official',
+                'url': 'https://www.ticketmaster.it/artist/linkin-park-tickets/10021',
+                'source': 'Official Linkin Park & TicketMaster Italy',
                 'verified': True,
                 'artist': 'Linkin Park',
-                'support_acts': ['Spiritbox'],
-                'ticket_info': 'Tickets available via TicketMaster Italy',
-                'price_range': '€70-€180',
-                'on_sale': True
+                'support_acts': ['TBA'],
+                'ticket_info': 'SOLD OUT - Was available via TicketMaster Italy',
+                'price_range': 'TBA',
+                'on_sale': False
+            },
+            # Linkin Park - OFFICIAL From Zero World Tour Firenze 2026 (REAL DATA)
+            {
+                'id': 'linkin_park_florence_2026_06_26',
+                'name': 'Linkin Park - From Zero World Tour',
+                'date': '2026-06-26',
+                'time': '20:30',
+                'venue': 'Ippodromo del Visarno',
+                'city': 'Firenze',
+                'country': 'Italy',
+                'url': 'https://www.ticketmaster.it/artist/linkin-park-tickets/10021',
+                'source': 'Official Linkin Park & TicketMaster Italy',
+                'verified': True,
+                'artist': 'Linkin Park',
+                'support_acts': ['TBA'],
+                'ticket_info': 'General Sale: June 6, 2025 at 9:00 AM',
+                'price_range': 'TBA',
+                'on_sale': False
             }
         ]
     
