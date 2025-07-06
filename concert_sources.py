@@ -33,29 +33,18 @@ class MultiSourceConcertFinder:
     
     async def search_all_sources(self, artist_name: str, country_code: str = "IT") -> List[Dict]:
         """
-        Search all available sources for concerts - prioritizing comprehensive database
+        Search all available sources for concerts - ONLY authentic TicketMaster data
         """
         all_concerts = []
         
-        # 1. PRIORITY: Search comprehensive database first (official announcements)
-        try:
-            comprehensive_concerts = self.comprehensive_db.search_concerts(artist_name, country_code)
-            if comprehensive_concerts:
-                all_concerts.extend(comprehensive_concerts)
-                logger.info(f"Comprehensive DB found {len(comprehensive_concerts)} official concerts for {artist_name}")
-                # Return immediately if we found official concerts - these are the most reliable
-                return comprehensive_concerts
-        except Exception as e:
-            logger.error(f"Comprehensive DB search failed for {artist_name}: {e}")
-        
-        # 2. TicketMaster (primary API source)
+        # 1. PRIORITY: TicketMaster API (primary and ONLY source for authentic data)
         try:
             tm_concerts = await self.ticketmaster.search_concerts(artist_name, country_code)
             for concert in tm_concerts:
                 concert['source'] = 'TicketMaster'
                 concert['verified'] = True
             all_concerts.extend(tm_concerts)
-            logger.info(f"TicketMaster found {len(tm_concerts)} concerts for {artist_name}")
+            logger.info(f"TicketMaster found {len(tm_concerts)} authentic concerts for {artist_name}")
         except Exception as e:
             logger.error(f"TicketMaster search error for {artist_name}: {e}")
         
