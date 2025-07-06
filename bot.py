@@ -719,6 +719,11 @@ class ConceertBot:
         # Format date in Italian format
         formatted_date = self._format_date_italian(date)
         
+        # Debug logging to track what's being displayed
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Displaying concert date: '{date}' -> '{formatted_date}'")
+        
         # Date and time
         if time:
             message += f"📅 {formatted_date} ore {time}\n"
