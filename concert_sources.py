@@ -38,44 +38,68 @@ class MultiSourceConcertFinder:
     
     async def search_all_sources(self, artist_name: str, country_code: str = "IT") -> List[Dict]:
         """
-        Search all available sources for concerts - Official websites + TicketMaster data
+        Search all available sources for concerts - Only Italian events from activation date onwards
         """
+        # Strict Italy-only filtering
+        if country_code.upper() != "IT":
+            logger.info(f"Rejecting search request for {artist_name} - Only Italian events are monitored")
+            return []
+        
+        logger.info(f"Starting Italian concert search for {artist_name}")
         all_concerts = []
         
-        # 1. PRIORITY: Verified concert database (manually verified authentic data)
+        # 1. PRIORITY: Verified concert database (manually verified authentic Italian data)
         try:
             verified_concerts = self.verified_db.search_concerts(artist_name, country_code)
             if verified_concerts:
-                all_concerts.extend(verified_concerts)
-                logger.info(f"Verified database found {len(verified_concerts)} authentic concerts for {artist_name}")
-                # Return immediately if we found verified concerts - these are the most reliable
-                return verified_concerts
+                # Additional filtering to ensure all concerts are in Italy and future dates
+                italian_future_concerts = [
+                    concert for concert in verified_concerts 
+                    if concert.get('country', '').upper() == 'ITALY' and 
+                    self._is_future_event(concert.get('date', ''))
+                ]
+                
+                if italian_future_concerts:
+                    all_concerts.extend(italian_future_concerts)
+                    logger.info(f"Verified database found {len(italian_future_concerts)} future Italian concerts for {artist_name}")
+                    return italian_future_concerts
         except Exception as e:
             logger.error(f"Verified database search error for {artist_name}: {e}")
         
-        # 2. FALLBACK: Official band websites (web scraping)
+        # 2. FALLBACK: Official band websites (web scraping for Italian venues only)
         try:
             official_concerts = await self.official_scraper.search_official_concerts(artist_name, country_code)
             if official_concerts:
-                all_concerts.extend(official_concerts)
-                logger.info(f"Official website found {len(official_concerts)} authentic concerts for {artist_name}")
-                # Return immediately if we found official concerts - these are the most reliable
-                return official_concerts
+                # Additional filtering to ensure only Italian events
+                italian_concerts = [
+                    concert for concert in official_concerts 
+                    if concert.get('country', '').upper() == 'ITALY' and 
+                    self._is_future_event(concert.get('date', ''))
+                ]
+                
+                if italian_concerts:
+                    all_concerts.extend(italian_concerts)
+                    logger.info(f"Official website found {len(italian_concerts)} future Italian concerts for {artist_name}")
+                    return italian_concerts
         except Exception as e:
             logger.error(f"Official website search error for {artist_name}: {e}")
         
-        # REMOVED: TicketMaster API fallback that was causing date conflicts
-        # Only verified data is now used to prevent incorrect dates from external APIs
-        
-        # REMOVED: Legacy known concert data (could conflict with verified database)
-        
-        # REMOVED: All external API searches that could return incorrect dates
-        # Only verified database and official website data is used
-        
         if not all_concerts:
-            logger.info(f"No authentic concerts found for {artist_name} in verified sources")
+            logger.info(f"No authentic Italian concerts found for {artist_name} - monitoring continues")
         
         return all_concerts
+    
+    def _is_future_event(self, date_str: str) -> bool:
+        """Check if event date is in the future"""
+        try:
+            from datetime import datetime
+            event_date = datetime.strptime(date_str, '%Y-%m-%d')
+            is_future = event_date > datetime.now()
+            logger.info(f"Date check: {date_str} is {'future' if is_future else 'past'}")
+            return is_future
+        except:
+            logger.warning(f"Unable to parse date: {date_str}")
+            return False
     
     async def _search_by_attraction_id(self, attraction_id: str, country_code: str) -> List[Dict]:
         """

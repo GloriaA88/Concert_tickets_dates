@@ -60,6 +60,9 @@ class ConceertBot:
         # Register user in database
         await self.db.add_user(user_id, username)
         
+        # Set activation date for concert monitoring
+        await self.db.set_user_activation_date(user_id)
+        
         await self.show_main_menu(update)
     
     async def show_main_menu(self, update: Update, message_text: str = None):
@@ -68,6 +71,10 @@ class ConceertBot:
             message_text = (
                 "🎵 Benvenuto nel Bot Concerti Italia! 🎵\n\n"
                 "Ti aiuterò a rimanere aggiornato sui concerti dei tuoi gruppi preferiti in Italia.\n\n"
+                "🔍 Monitoraggio Automatico:\n"
+                "• Controllo ogni 4 ore per nuovi eventi in Italia\n"
+                "• Solo concerti ufficiali dal giorno di attivazione in avanti\n"
+                "• Notifiche immediate quando trovo concerti\n\n"
                 "Scegli un'opzione dal menu:"
             )
         
@@ -75,6 +82,7 @@ class ConceertBot:
             [InlineKeyboardButton("➕ Aggiungi Gruppo", callback_data="add_band")],
             [InlineKeyboardButton("➖ Rimuovi Gruppo", callback_data="remove_band")],
             [InlineKeyboardButton("📋 Lista Gruppi Preferiti", callback_data="list_favorites")],
+            [InlineKeyboardButton("📊 Stato Monitoraggio", callback_data="monitoring_status")],
             [InlineKeyboardButton("ℹ️ Aiuto", callback_data="help")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
@@ -103,15 +111,69 @@ class ConceertBot:
             "• Aggiungi gruppi ai tuoi preferiti\n"
             "• Rimuovi gruppi dalla lista\n"
             "• Visualizza la lista dei tuoi gruppi preferiti\n\n"
-            "🔔 Monitoraggio Automatico:\n"
+            "🔔 Monitoraggio Automatico Eventi in Italia:\n"
             "• Controllo automatico ogni 4 ore per nuovi concerti\n"
+            "• Cerca solo eventi ufficiali dal giorno di attivazione in avanti\n"
             "• Notifiche immediate quando trovo concerti in Italia\n"
             "• Link diretto per acquistare i biglietti\n"
-            "• Monitoraggio continuo senza intervento manuale\n\n"
+            "• Monitoraggio continuo senza intervento manuale\n"
+            "• Filtra automaticamente per date future e località italiane\n\n"
             "Usa il menu qui sotto per iniziare:"
         )
         
         await update.message.reply_text(help_text, reply_markup=reply_markup)
+    
+    async def show_monitoring_status(self, update: Update, user_id: int):
+        """Show current monitoring status for the user"""
+        try:
+            # Get user's favorites
+            favorites = await self.db.get_user_favorites(user_id)
+            
+            # Get activation date
+            activation_date = await self.db.get_user_activation_date(user_id)
+            
+            # Get current date for comparison
+            current_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            
+            # Build status message
+            status_text = "📊 Stato Monitoraggio Concerti Italia\n\n"
+            
+            if activation_date:
+                status_text += f"🔍 Attivazione: {activation_date}\n"
+            
+            status_text += f"🕐 Data corrente: {current_date}\n"
+            status_text += f"🎵 Gruppi monitorati: {len(favorites)}\n\n"
+            
+            if favorites:
+                status_text += "📋 Gruppi in monitoraggio:\n"
+                for band in favorites:
+                    status_text += f"• {band}\n"
+                status_text += "\n"
+            
+            status_text += "🔔 Controlli automatici:\n"
+            status_text += "• Frequenza: Ogni 4 ore\n"
+            status_text += "• Paese: Solo eventi in Italia\n"
+            status_text += "• Date: Solo eventi futuri\n"
+            status_text += "• Fonti: Database ufficiali verificati\n\n"
+            
+            status_text += "✅ Il bot sta monitorando attivamente i tuoi gruppi preferiti!"
+            
+            keyboard = [[InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await update.callback_query.edit_message_text(
+                status_text,
+                reply_markup=reply_markup
+            )
+            
+        except Exception as e:
+            logger.error(f"Error showing monitoring status: {e}")
+            keyboard = [[InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await update.callback_query.edit_message_text(
+                "❌ Errore nel recuperare lo stato del monitoraggio.",
+                reply_markup=reply_markup
+            )
     
     async def add_favorite_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /addfavorite command"""
@@ -359,6 +421,10 @@ class ConceertBot:
                 await query.edit_message_text(favorites_text, reply_markup=reply_markup)
         
 
+        elif query.data == "monitoring_status":
+            # Show monitoring status
+            await self.show_monitoring_status(update, user_id)
+        
         elif query.data == "help":
             await self.help_command(update, context)
         
@@ -368,7 +434,7 @@ class ConceertBot:
                 [InlineKeyboardButton("➕ Aggiungi Gruppo", callback_data="add_band")],
                 [InlineKeyboardButton("➖ Rimuovi Gruppo", callback_data="remove_band")],
                 [InlineKeyboardButton("📋 Lista Gruppi Preferiti", callback_data="list_favorites")],
-                [InlineKeyboardButton("🎟️ Utilità Concerti", callback_data="concert_utilities")],
+                [InlineKeyboardButton("📊 Stato Monitoraggio", callback_data="monitoring_status")],
                 [InlineKeyboardButton("ℹ️ Aiuto", callback_data="help")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -658,6 +724,7 @@ class ConceertBot:
             [InlineKeyboardButton("➕ Aggiungi Gruppo", callback_data="add_band")],
             [InlineKeyboardButton("➖ Rimuovi Gruppo", callback_data="remove_band")],
             [InlineKeyboardButton("📋 Lista Gruppi Preferiti", callback_data="list_favorites")],
+            [InlineKeyboardButton("📊 Stato Monitoraggio", callback_data="monitoring_status")],
             [InlineKeyboardButton("ℹ️ Aiuto", callback_data="help")]
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)

@@ -47,6 +47,17 @@ class DatabaseManager:
                 )
             ''')
             
+            # Bot activation tracking table
+            await db.execute('''
+                CREATE TABLE IF NOT EXISTS bot_activation (
+                    id INTEGER PRIMARY KEY,
+                    user_id INTEGER,
+                    activated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (user_id) REFERENCES users (id),
+                    UNIQUE(user_id)
+                )
+            ''')
+            
             await db.commit()
             logger.info("Database initialized successfully")
     
@@ -162,3 +173,29 @@ class DatabaseManager:
                 logger.info(f"Cleaned up notifications older than {days} days")
         except Exception as e:
             logger.error(f"Error cleaning up old notifications: {e}")
+    
+    async def set_user_activation_date(self, user_id: int):
+        """Set activation date for a user (when they first start using the bot)"""
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                await db.execute(
+                    'INSERT OR IGNORE INTO bot_activation (user_id) VALUES (?)',
+                    (user_id,)
+                )
+                await db.commit()
+        except Exception as e:
+            logger.error(f"Error setting activation date: {e}")
+    
+    async def get_user_activation_date(self, user_id: int) -> Optional[str]:
+        """Get activation date for a user"""
+        try:
+            async with aiosqlite.connect(self.db_path) as db:
+                cursor = await db.execute(
+                    'SELECT activated_at FROM bot_activation WHERE user_id = ?',
+                    (user_id,)
+                )
+                result = await cursor.fetchone()
+                return result[0] if result else None
+        except Exception as e:
+            logger.error(f"Error getting activation date: {e}")
+            return None

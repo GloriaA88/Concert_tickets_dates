@@ -132,6 +132,12 @@ The application follows a modular architecture with clear separation of concerns
 - July 06, 2025: **TIMESTAMP MARKERS**: Added update timestamps to concert messages to ensure users see fresh data
 - July 06, 2025: **CRITICAL FIX**: Fixed python-telegram-bot library version compatibility issue that was preventing bot startup
 - July 06, 2025: **BOT OPERATIONAL**: Successfully resolved ImportError and confirmed bot is now running and connected to Telegram API
+- July 06, 2025: **ENHANCED ITALY-SPECIFIC MONITORING**: Added comprehensive Italy-only event monitoring system
+- July 06, 2025: **ACTIVATION DATE TRACKING**: Implemented bot activation date tracking to monitor events from activation onwards
+- July 06, 2025: **MONITORING STATUS FEATURE**: Added real-time monitoring status display showing current tracking state
+- July 06, 2025: **ENHANCED FILTERING**: Improved date and location filtering to ensure only future Italian events are monitored
+- July 06, 2025: **DETAILED LOGGING**: Added comprehensive logging for Italy-specific searches and date filtering
+- July 06, 2025: **USER EXPERIENCE**: Enhanced welcome messages and help text to clearly explain Italy-only monitoring from activation date
 
 ## User Preferences
 

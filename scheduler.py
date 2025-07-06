@@ -95,7 +95,7 @@ class ConcertScheduler:
     
     async def _check_concerts(self):
         """Check for new concerts for all users"""
-        logger.info("Starting scheduled concert check...")
+        logger.info("Starting scheduled concert check for Italian events...")
         
         try:
             if not self.bot:
@@ -104,7 +104,7 @@ class ConcertScheduler:
                 self.bot = ConceertBot(self.config)
             
             await self.bot.check_concerts_for_all_users()
-            logger.info("Scheduled concert check completed")
+            logger.info("Scheduled concert check for Italian events completed")
             
         except Exception as e:
             logger.error(f"Error during scheduled concert check: {e}")

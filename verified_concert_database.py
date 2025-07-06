@@ -101,8 +101,12 @@ class VerifiedConcertDatabase:
         """
         Search for verified concerts by artist name
         """
+        # Strict Italy-only filtering
         if country_code.upper() != "IT":
+            logger.info(f"Rejecting search for {artist_name} - Country code '{country_code}' is not Italy")
             return []
+        
+        logger.info(f"Searching for Italian concerts for artist: {artist_name}")
         
         # Normalize artist name for search
         normalized_search = artist_name.lower().strip()
@@ -113,27 +117,34 @@ class VerifiedConcertDatabase:
         for concert in self.verified_concerts:
             concert_artist = concert['artist'].lower().strip()
             
+            # Only consider concerts in Italy
+            if concert.get('country', '').upper() != 'ITALY':
+                continue
+            
             # Exact match or contains match
             if normalized_search == concert_artist or normalized_search in concert_artist:
                 if self._is_future_concert(concert['date']):
                     matching_concerts.append(concert)
+                    logger.info(f"Found future Italian concert: {concert['name']} on {concert['date']}")
                     continue
             
             # Reverse match (artist name contains search term)
             if concert_artist in normalized_search:
                 if self._is_future_concert(concert['date']):
                     matching_concerts.append(concert)
+                    logger.info(f"Found future Italian concert: {concert['name']} on {concert['date']}")
                     continue
             
             # Fuzzy matching for similar names
             if self._fuzzy_match(normalized_search, concert_artist):
                 if self._is_future_concert(concert['date']):
                     matching_concerts.append(concert)
+                    logger.info(f"Found future Italian concert: {concert['name']} on {concert['date']}")
         
         if matching_concerts:
-            logger.info(f"Found {len(matching_concerts)} verified concerts for {artist_name}")
+            logger.info(f"Total verified Italian concerts found for {artist_name}: {len(matching_concerts)}")
         else:
-            logger.info(f"No verified concerts found for {artist_name}")
+            logger.info(f"No verified Italian concerts found for {artist_name}")
         
         return matching_concerts
     
