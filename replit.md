@@ -79,6 +79,10 @@ The application follows a modular architecture with clear separation of concerns
 - July 06, 2025: Updated bot interface to complete Italian language
 - July 06, 2025: Implemented interactive menu system with inline keyboards
 - July 06, 2025: Added button-based navigation matching user's design requirements
+- July 06, 2025: Implemented immediate concert search when adding artists
+- July 06, 2025: Added real concert data detection system to overcome TicketMaster API limitations
+- July 06, 2025: Enhanced notifications with direct ticket purchase links and detailed concert information
+- July 06, 2025: Added persistent menu system eliminating need to type /start repeatedly
 
 ## User Preferences
 

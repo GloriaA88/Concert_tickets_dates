@@ -416,19 +416,38 @@ class ConceertBot:
         """Format a concert into a readable message"""
         name = concert.get('name', 'Evento Sconosciuto')
         date = concert.get('date', 'Da Definire')
+        time = concert.get('time', '')
         venue = concert.get('venue', 'Venue Sconosciuto')
         city = concert.get('city', 'Città Sconosciuta')
         url = concert.get('url', '')
         source = concert.get('source', 'Unknown')
         is_verified = concert.get('verified', True)
         note = concert.get('note', '')
+        support_acts = concert.get('support_acts', [])
+        ticket_info = concert.get('ticket_info', '')
         
-        message = f"🎵 <b>{name}</b>\n"
-        message += f"📅 {date}\n"
-        message += f"📍 {venue}, {city}\n"
+        message = f"🎸 <b>{name}</b>\n"
         
+        # Date and time
+        if time:
+            message += f"📅 {date} ore {time}\n"
+        else:
+            message += f"📅 {date}\n"
+        
+        message += f"🏟️ {venue}, {city}\n"
+        
+        # Support acts
+        if support_acts:
+            support_text = ', '.join(support_acts)
+            message += f"🎤 Con: {support_text}\n"
+        
+        # Ticket information
+        if ticket_info:
+            message += f"🎫 {ticket_info}\n"
+        
+        # Purchase link
         if url and is_verified:
-            message += f"🎫 <a href='{url}'>Acquista Biglietti</a>\n"
+            message += f"🛒 <a href='{url}'>Acquista Biglietti Ufficiali</a>\n"
         elif not is_verified:
             message += f"💡 {note}\n"
         
