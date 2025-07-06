@@ -48,22 +48,9 @@ class MultiSourceConcertFinder:
         logger.info(f"Starting Italian concert search for {artist_name}")
         all_concerts = []
         
-        # 1. Check verified concert database (manually verified authentic Italian data)
-        try:
-            verified_concerts = self.verified_db.search_concerts(artist_name, country_code)
-            if verified_concerts:
-                # Additional filtering to ensure all concerts are in Italy and future dates
-                italian_future_concerts = [
-                    concert for concert in verified_concerts 
-                    if concert.get('country', '').upper() == 'ITALY' and 
-                    self._is_future_event(concert.get('date', ''))
-                ]
-                
-                if italian_future_concerts:
-                    all_concerts.extend(italian_future_concerts)
-                    logger.info(f"Verified database found {len(italian_future_concerts)} future Italian concerts for {artist_name}")
-        except Exception as e:
-            logger.error(f"Verified database search error for {artist_name}: {e}")
+        # DISABLED: Static database to prevent incorrect date display
+        # Only use real-time TicketMaster API data for authentic results
+        logger.info(f"Skipping static database - using only real-time API data for {artist_name}")
         
         # 2. Check TicketMaster API for real-time concert data
         try:
@@ -86,22 +73,9 @@ class MultiSourceConcertFinder:
         except Exception as e:
             logger.error(f"TicketMaster API search error for {artist_name}: {e}")
         
-        # 3. Check official band websites (web scraping for Italian venues only)
-        try:
-            official_concerts = await self.official_scraper.search_official_concerts(artist_name, country_code)
-            if official_concerts:
-                # Additional filtering to ensure only Italian events
-                italian_concerts = [
-                    concert for concert in official_concerts 
-                    if concert.get('country', '').upper() == 'ITALY' and 
-                    self._is_future_event(concert.get('date', ''))
-                ]
-                
-                if italian_concerts:
-                    all_concerts.extend(italian_concerts)
-                    logger.info(f"Official website found {len(italian_concerts)} future Italian concerts for {artist_name}")
-        except Exception as e:
-            logger.error(f"Official website search error for {artist_name}: {e}")
+        # DISABLED: Official website scraper to prevent incorrect date display
+        # Only use real-time TicketMaster API data for authentic results
+        logger.info(f"Skipping official website scraper - using only real-time API data for {artist_name}")
         
         # Remove duplicates based on concert ID or similar attributes
         unique_concerts = []
