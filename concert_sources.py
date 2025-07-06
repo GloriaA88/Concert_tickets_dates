@@ -92,13 +92,7 @@ class MultiSourceConcertFinder:
             except Exception as e:
                 logger.error(f"Attraction search error for {artist_name}: {e}")
         
-        # 4. Search legacy known concert data (fallback)
-        try:
-            known_concerts = await self._search_known_concerts(artist_name, country_code)
-            all_concerts.extend(known_concerts)
-            logger.info(f"Known concerts found {len(known_concerts)} for {artist_name}")
-        except Exception as e:
-            logger.error(f"Known concerts search error for {artist_name}: {e}")
+        # REMOVED: Legacy known concert data (could conflict with verified database)
         
         # 5. Search Songkick (alternative concert database) - only if still no results
         if not all_concerts:
@@ -188,64 +182,8 @@ class MultiSourceConcertFinder:
         
         return concerts
     
-    async def _search_known_concerts(self, artist_name: str, country_code: str) -> List[Dict]:
-        """Search database of known announced concerts"""
-        concerts = []
-        
-        # CRITICAL: Only add concerts that are OFFICIALLY ANNOUNCED and VERIFIED
-        # This database should remain empty unless concerts are confirmed through official sources
-        # If no official events exist, this returns empty so the bot reports no events
-        known_concerts_db = {
-            # Only officially announced and verified concerts from official sources
-            # Data verified through official announcements and ticketing platforms
-            'metallica': [
-                {
-                    'id': 'metallica_bologna_2026_06_03',
-                    'name': 'Metallica - M72 World Tour',
-                    'date': '2026-06-03',
-                    'time': '20:30',
-                    'venue': 'Stadio Renato Dall\'Ara',
-                    'city': 'Bologna',
-                    'country': 'Italy',
-                    'url': 'https://www.ticketmaster.it/artist/metallica-tickets/1240',
-                    'source': 'Official Metallica.com Announcement',
-                    'verified': True,
-                    'support_acts': ['Gojira', 'Knocked Loose'],
-                    'ticket_info': 'Presale: 27 May 2025 | General Sale: 30 May 2025',
-                    'official_announcement': 'https://www.metallica.com/tour/2026-06-03-bologna-italy.html'
-                }
-            ]
-        }
-        
-        # Normalize artist name for matching with multiple search patterns
-        artist_key = artist_name.lower().strip()
-        
-        # Direct match
-        if artist_key in known_concerts_db:
-            for concert_data in known_concerts_db[artist_key]:
-                concerts.append(concert_data)
-                logger.info(f"Found known concert: {concert_data['name']} on {concert_data['date']}")
-        
-        # Fuzzy matching for similar artist names
-        if len(concerts) == 0:
-            # Check for partial matches or common variations
-            for known_artist in known_concerts_db.keys():
-                # Check if the searched artist name is contained within known artist names
-                if artist_key in known_artist or known_artist in artist_key:
-                    # Check similarity score (simple approach)
-                    if len(artist_key) > 3 and len(known_artist) > 3:
-                        # Count matching characters
-                        matching_chars = sum(1 for c in artist_key if c in known_artist)
-                        similarity = matching_chars / max(len(artist_key), len(known_artist))
-                        
-                        if similarity > 0.7:  # 70% similarity threshold
-                            for concert_data in known_concerts_db[known_artist]:
-                                concerts.append(concert_data)
-                                logger.info(f"Found known concert via fuzzy match ({known_artist} ~ {artist_key}): {concert_data['name']} on {concert_data['date']}")
-                            break  # Found a match, no need to continue
-        
-        logger.info(f"Known concerts found {len(concerts)} for {artist_name}")
-        return concerts
+    # REMOVED: Duplicate concert database that could cause date conflicts
+    # All authentic concert data now exclusively from verified_concert_database.py
     
     def create_sample_concert(self, artist_name: str) -> Dict:
         """

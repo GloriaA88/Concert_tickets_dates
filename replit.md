@@ -122,6 +122,9 @@ The application follows a modular architecture with clear separation of concerns
   - Linkin Park: June 26, 2026, Firenze (Ippodromo del Visarno) - Official From Zero Tour
 - July 06, 2025: **DATE FORMATTING FIX**: Corrected date display to show proper Italian format (3 giugno 2026)
 - July 06, 2025: **REMOVED FAKE DATA**: Eliminated test function that created sample concerts, ensuring 100% authentic data only
+- July 06, 2025: **CRITICAL DATA CLEANUP**: Removed duplicate concert database from concert_sources.py to eliminate date conflicts
+- July 06, 2025: **SINGLE SOURCE TRUTH**: Bot now exclusively uses verified_concert_database.py for all concert data
+- July 06, 2025: **VERIFIED CORRECT DATES**: Comprehensive testing confirms bot displays: Metallica (3 giugno 2026), Green Day (15 giugno 2026), Linkin Park (24/26 giugno 2026)
 
 ## User Preferences
 
