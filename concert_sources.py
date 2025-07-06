@@ -6,6 +6,7 @@ import logging
 from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 import re
+from comprehensive_concert_db import ComprehensiveConcertDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +18,7 @@ class MultiSourceConcertFinder:
     def __init__(self, ticketmaster_api):
         self.ticketmaster = ticketmaster_api
         self.session = None
+        self.comprehensive_db = ComprehensiveConcertDatabase()
     
     async def get_session(self):
         """Get or create aiohttp session"""
@@ -31,11 +33,22 @@ class MultiSourceConcertFinder:
     
     async def search_all_sources(self, artist_name: str, country_code: str = "IT") -> List[Dict]:
         """
-        Search all available sources for concerts
+        Search all available sources for concerts - prioritizing comprehensive database
         """
         all_concerts = []
         
-        # 1. TicketMaster (primary source)
+        # 1. PRIORITY: Search comprehensive database first (official announcements)
+        try:
+            comprehensive_concerts = self.comprehensive_db.search_concerts(artist_name, country_code)
+            if comprehensive_concerts:
+                all_concerts.extend(comprehensive_concerts)
+                logger.info(f"Comprehensive DB found {len(comprehensive_concerts)} official concerts for {artist_name}")
+                # Return immediately if we found official concerts - these are the most reliable
+                return comprehensive_concerts
+        except Exception as e:
+            logger.error(f"Comprehensive DB search failed for {artist_name}: {e}")
+        
+        # 2. TicketMaster (primary API source)
         try:
             tm_concerts = await self.ticketmaster.search_concerts(artist_name, country_code)
             for concert in tm_concerts:
@@ -46,7 +59,7 @@ class MultiSourceConcertFinder:
         except Exception as e:
             logger.error(f"TicketMaster search error for {artist_name}: {e}")
         
-        # 2. Try attraction-based search with the found artist ID
+        # 3. Try attraction-based search with the found artist ID
         if not all_concerts:
             try:
                 artist_info = await self.ticketmaster.get_artist_info(artist_name)
@@ -63,7 +76,7 @@ class MultiSourceConcertFinder:
             except Exception as e:
                 logger.error(f"Attraction search error for {artist_name}: {e}")
         
-        # 3. ALWAYS search known concert data (real announcements) - this is our most reliable source
+        # 4. Search legacy known concert data (fallback)
         try:
             known_concerts = await self._search_known_concerts(artist_name, country_code)
             all_concerts.extend(known_concerts)
@@ -71,7 +84,7 @@ class MultiSourceConcertFinder:
         except Exception as e:
             logger.error(f"Known concerts search error for {artist_name}: {e}")
         
-        # 4. Search Songkick (alternative concert database) - only if still no results
+        # 5. Search Songkick (alternative concert database) - only if still no results
         if not all_concerts:
             try:
                 songkick_concerts = await self._search_songkick(artist_name, country_code)
@@ -80,7 +93,7 @@ class MultiSourceConcertFinder:
             except Exception as e:
                 logger.error(f"Songkick search error for {artist_name}: {e}")
         
-        # 5. Search Bandsintown (another alternative) - only if still no results
+        # 6. Search Bandsintown (another alternative) - only if still no results
         if not all_concerts:
             try:
                 bandsintown_concerts = await self._search_bandsintown(artist_name, country_code)
