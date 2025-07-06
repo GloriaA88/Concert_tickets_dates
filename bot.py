@@ -303,9 +303,12 @@ class ConceertBot:
         user_id = query.from_user.id
         
         if query.data == "add_band":
+            keyboard = [[InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
             await query.edit_message_text(
                 "➕ Aggiungi un nuovo gruppo\n\n"
-                "Scrivi il nome del gruppo che vuoi aggiungere ai tuoi preferiti:"
+                "Scrivi il nome del gruppo che vuoi aggiungere ai tuoi preferiti:",
+                reply_markup=reply_markup
             )
             # Set user state to expect band name input
             context.user_data['expecting_band_name'] = True

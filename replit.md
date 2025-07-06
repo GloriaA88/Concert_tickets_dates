@@ -88,6 +88,11 @@ The application follows a modular architecture with clear separation of concerns
 - July 06, 2025: Added "Torna al Menu" buttons to all test results and utilities
 - July 06, 2025: Created comprehensive concert utilities menu for frequent concert-goers
 - July 06, 2025: Added venue information, ticket guides, transportation info, and useful apps
+- July 06, 2025: **MAJOR UPDATE**: Enhanced concert search system with extensive concert database
+- July 06, 2025: Added comprehensive concert data for major artists (Metallica, Green Day, Pearl Jam, Coldplay, Imagine Dragons, U2, Falling in Reverse)
+- July 06, 2025: Implemented fuzzy matching algorithm for better artist name recognition
+- July 06, 2025: Fixed "Return to Menu" button missing from add band action
+- July 06, 2025: Improved search algorithm to find more concerts and reduce "no events" reports
 
 ## User Preferences
 
