@@ -10,4 +10,5 @@ dependencies = [
     "python-telegram-bot==20.7",
     "schedule>=1.2.2",
     "streamlit>=1.46.1",
+    "telegram>=0.0.1",
 ]

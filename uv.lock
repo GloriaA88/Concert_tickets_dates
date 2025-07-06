@@ -970,6 +970,7 @@ dependencies = [
     { name = "python-telegram-bot" },
     { name = "schedule" },
     { name = "streamlit" },
+    { name = "telegram" },
 ]
 
 [package.metadata]
@@ -980,6 +981,7 @@ requires-dist = [
     { name = "python-telegram-bot", specifier = "==20.7" },
     { name = "schedule", specifier = ">=1.2.2" },
     { name = "streamlit", specifier = ">=1.46.1" },
+    { name = "telegram", specifier = ">=0.0.1" },
 ]
 
 [[package]]
@@ -1162,6 +1164,12 @@ sdist = { url = "https://files.pythonhosted.org/packages/bd/7e/c7499c447b7021657
 wheels = [
     { url = "https://files.pythonhosted.org/packages/84/3b/35400175788cdd6a43c90dce1e7f567eb6843a3ba0612508c0f19ee31f5f/streamlit-1.46.1-py3-none-any.whl", hash = "sha256:dffa373230965f87ccc156abaff848d7d731920cf14106f3b99b1ea18076f728", size = 10051346 },
 ]
+
+[[package]]
+name = "telegram"
+version = "0.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9d/ca/8bdf2deb93b9f6971dabf2ddc827c2a98ce23e13582a15b37e9bc169f226/telegram-0.0.1.tar.gz", hash = "sha256:d405a0af4c868a8dbeae6d03e297e21c7ee6269e11e2ed3810e15544aba02591", size = 879 }
 
 [[package]]
 name = "tenacity"
