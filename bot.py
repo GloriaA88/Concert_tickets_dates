@@ -207,7 +207,13 @@ class ConceertBot:
             # Get user's favorites
             favorites = await self.db.get_user_favorites(user_id)
             if not favorites:
-                await update.message.reply_text("❌ Non hai gruppi preferiti. Aggiungi alcuni gruppi prima di testare.")
+                reply_markup = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🏠 Torna al Menu", callback_data="main_menu")]
+                ])
+                await update.message.reply_text(
+                    "❌ Non hai gruppi preferiti. Aggiungi alcuni gruppi prima di testare.",
+                    reply_markup=reply_markup
+                )
                 return
             
             await update.message.reply_text(f"🎵 Cercando concerti per: {', '.join(favorites)}")
@@ -229,22 +235,37 @@ class ConceertBot:
                 # For testing, don't check if already notified
                 new_concerts.extend(concerts)
             
+            # Add back button to test results
+            reply_markup = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🏠 Torna al Menu", callback_data="main_menu")]
+            ])
+            
             if new_concerts:
                 # Send notification
                 await self.send_concert_notification(user_id, new_concerts)
-                await update.message.reply_text(f"✅ Test completato! Trovati {len(new_concerts)} concerti. Notifica inviata.")
+                await update.message.reply_text(
+                    f"✅ Test completato! Trovati {len(new_concerts)} concerti. Notifica inviata.",
+                    reply_markup=reply_markup
+                )
             else:
                 # Provide more helpful debugging information
                 await update.message.reply_text(
                     "😔 Nessun concerto trovato al momento per i tuoi gruppi preferiti in Italia.\n\n"
                     "⚠️ Nota: TicketMaster potrebbe non avere tutti i concerti italiani. "
                     "Il monitoraggio automatico continua ogni 4 ore e controllerà anche altre fonti quando disponibili.\n\n"
-                    "💡 Suggerimento: Verifica che il nome del gruppo sia scritto esattamente come appare sui biglietti ufficiali."
+                    "💡 Suggerimento: Verifica che il nome del gruppo sia scritto esattamente come appare sui biglietti ufficiali.",
+                    reply_markup=reply_markup
                 )
                 
         except Exception as e:
             logger.error(f"Error in test command: {e}")
-            await update.message.reply_text(f"❌ Errore durante il test: {e}")
+            reply_markup = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🏠 Torna al Menu", callback_data="main_menu")]
+            ])
+            await update.message.reply_text(
+                f"❌ Errore durante il test: {e}",
+                reply_markup=reply_markup
+            )
     
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle text messages (band names)"""
@@ -336,6 +357,7 @@ class ConceertBot:
                 [InlineKeyboardButton("➕ Aggiungi Gruppo", callback_data="add_band")],
                 [InlineKeyboardButton("➖ Rimuovi Gruppo", callback_data="remove_band")],
                 [InlineKeyboardButton("📋 Lista Gruppi Preferiti", callback_data="list_favorites")],
+                [InlineKeyboardButton("🎟️ Utilità Concerti", callback_data="concert_utilities")],
                 [InlineKeyboardButton("ℹ️ Aiuto", callback_data="help")]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -344,6 +366,164 @@ class ConceertBot:
                 "🎵 Bot Concerti Italia\n\nScegli un'opzione dal menu:",
                 reply_markup=reply_markup
             )
+        
+        elif query.data == "concert_utilities":
+            # Concert utilities menu for frequent concert-goers
+            keyboard = [
+                [InlineKeyboardButton("🏟️ Info Venue Principali", callback_data="venue_info")],
+                [InlineKeyboardButton("🎫 Guida Acquisto Biglietti", callback_data="ticket_guide")],
+                [InlineKeyboardButton("🚗 Trasporti e Logistica", callback_data="transport_info")],
+                [InlineKeyboardButton("📱 App Utili", callback_data="useful_apps")],
+                [InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await query.edit_message_text(
+                "🎟️ Utilità per Concerti\n\nSeleziona l'informazione che ti serve:",
+                reply_markup=reply_markup
+            )
+        
+        elif query.data == "venue_info":
+            venue_text = """🏟️ **Venue Principali in Italia**
+
+**Milano:**
+• Stadio San Siro - Capacità: 80.000
+• Forum di Assago - Capacità: 12.000
+• Ippodromo SNAI La Maura - Capacità: 80.000
+
+**Roma:**
+• Stadio Olimpico - Capacità: 70.000
+• Circo Massimo - Capacità: 300.000
+• Palazzo dello Sport - Capacità: 10.000
+
+**Bologna:**
+• Stadio Renato Dall'Ara - Capacità: 38.000
+• Unipol Arena - Capacità: 11.000
+
+**Firenze:**
+• Visarno Arena - Capacità: 50.000
+• Teatro del Maggio - Capacità: 2.000
+
+**Napoli:**
+• Stadio Maradona - Capacità: 54.000
+
+💡 **Suggerimenti:**
+- Arriva sempre in anticipo nei grandi stadi
+- Controlla i trasporti pubblici per l'evento
+- Porta powerbank per il telefono"""
+            
+            keyboard = [
+                [InlineKeyboardButton("🔙 Utilità Concerti", callback_data="concert_utilities")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.edit_message_text(venue_text, reply_markup=reply_markup, parse_mode='Markdown')
+        
+        elif query.data == "ticket_guide":
+            ticket_text = """🎫 **Guida Acquisto Biglietti**
+
+**Siti Ufficiali Affidabili:**
+• TicketMaster.it - Principale venditore
+• TicketOne.it - Alternative affidabile
+• Vivaticket.com - Eventi locali
+• Siti venue ufficiali
+
+**Tempistiche:**
+• Pre-sale: Solitamente 48h prima
+• Vendita generale: Venerdì 10:00
+• Last minute: Solo per eventi non sold-out
+
+**Modalità Pagamento:**
+• Carta di credito/debito
+• PayPal
+• Bonifico (venue specifici)
+
+⚠️ **Evita Assolutamente:**
+• Venditori non autorizzati
+• Prezzi sopra il nominale
+• Siti sospetti o social media
+
+💡 **Pro Tips:**
+• Iscriviti alle presale degli artisti
+• Usa app ufficiali per acquisti veloci
+• Controlla sempre il nome sui biglietti nominativi"""
+            
+            keyboard = [
+                [InlineKeyboardButton("🔙 Utilità Concerti", callback_data="concert_utilities")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.edit_message_text(ticket_text, reply_markup=reply_markup, parse_mode='Markdown')
+        
+        elif query.data == "transport_info":
+            transport_text = """🚗 **Trasporti e Logistica**
+
+**Milano (San Siro):**
+• Metro: M5 San Siro Stadio
+• Autobus: Linee ATM dedicate eventi
+• Auto: Parcheggi a pagamento zona
+
+**Roma (Olimpico):**
+• Metro: Linea A Flaminio + tram 2
+• Autobus: Linee ATAC extra
+• Auto: ZTL attiva, evitare il centro
+
+**Bologna (Dall'Ara):**
+• Autobus: Linea 21 diretta
+• Treno: Stazione centrale + autobus
+• Auto: Parcheggi Tanari/Andrea Costa
+
+**Firenze (Visarno Arena):**
+• Autobus: Linee ATAF dedicate
+• Tramvia: Linea T1 + autobus
+• Auto: Parcheggi Campo di Marte
+
+**Consigli Generali:**
+• Prenota hotel/B&B in anticipo
+• Scarica app trasporti locali
+• Porta contanti per parcheggi
+• Pianifica il ritorno (trasporti extra fino a tardi)"""
+            
+            keyboard = [
+                [InlineKeyboardButton("🔙 Utilità Concerti", callback_data="concert_utilities")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.edit_message_text(transport_text, reply_markup=reply_markup, parse_mode='Markdown')
+        
+        elif query.data == "useful_apps":
+            apps_text = """📱 **App Utili per Concerti**
+
+**Biglietteria:**
+• TicketMaster (iOS/Android)
+• TicketOne (iOS/Android)
+• Vivaticket (iOS/Android)
+
+**Trasporti:**
+• Citymapper - Milano, Roma
+• ATM Milano - Trasporti Milano
+• ATAC Roma - Trasporti Roma  
+• Google Maps - Sempre aggiornato
+
+**Musica e Info:**
+• Setlist.fm - Scalette concerti live
+• Bandsintown - Notifiche concerti
+• Songkick - Database concerti
+• Spotify - Preparati con le playlist
+
+**Utility:**
+• Hotel Tonight - Hotel last minute
+• BlaBlaCar - Condivisione viaggi
+• Weather - Meteo per concerti all'aperto
+• WhatsApp - Coordina con amici
+
+💡 **Prima del concerto:**
+- Scarica biglietti offline
+- Condividi posizione con amici
+- Porta powerbank carico"""
+            
+            keyboard = [
+                [InlineKeyboardButton("🔙 Utilità Concerti", callback_data="concert_utilities")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.edit_message_text(apps_text, reply_markup=reply_markup, parse_mode='Markdown')
         
         elif query.data.startswith("remove_"):
             band_name = query.data[7:]  # Remove "remove_" prefix

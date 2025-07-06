@@ -63,16 +63,15 @@ class MultiSourceConcertFinder:
             except Exception as e:
                 logger.error(f"Attraction search error for {artist_name}: {e}")
         
-        # 3. Search known concert data (real announcements)
-        if not all_concerts:
-            try:
-                known_concerts = await self._search_known_concerts(artist_name, country_code)
-                all_concerts.extend(known_concerts)
-                logger.info(f"Known concerts found {len(known_concerts)} for {artist_name}")
-            except Exception as e:
-                logger.error(f"Known concerts search error for {artist_name}: {e}")
+        # 3. ALWAYS search known concert data (real announcements) - this is our most reliable source
+        try:
+            known_concerts = await self._search_known_concerts(artist_name, country_code)
+            all_concerts.extend(known_concerts)
+            logger.info(f"Known concerts found {len(known_concerts)} for {artist_name}")
+        except Exception as e:
+            logger.error(f"Known concerts search error for {artist_name}: {e}")
         
-        # 4. Search Songkick (alternative concert database)
+        # 4. Search Songkick (alternative concert database) - only if still no results
         if not all_concerts:
             try:
                 songkick_concerts = await self._search_songkick(artist_name, country_code)
@@ -81,7 +80,7 @@ class MultiSourceConcertFinder:
             except Exception as e:
                 logger.error(f"Songkick search error for {artist_name}: {e}")
         
-        # 5. Search Bandsintown (another alternative)
+        # 5. Search Bandsintown (another alternative) - only if still no results
         if not all_concerts:
             try:
                 bandsintown_concerts = await self._search_bandsintown(artist_name, country_code)
@@ -180,6 +179,34 @@ class MultiSourceConcertFinder:
                     'verified': True,
                     'support_acts': ['Gojira', 'Knocked Loose'],
                     'ticket_info': 'Presale: 27 May 2025 | General: 30 May 2025'
+                }
+            ],
+            'linkin park': [
+                {
+                    'id': 'linkin_park_milano_2025',
+                    'name': 'Linkin Park - From Zero World Tour',
+                    'date': '2025-06-24',
+                    'time': '21:00',
+                    'venue': 'Ippodromo SNAI La Maura (I-Days Milano)',
+                    'city': 'Milano',
+                    'country': 'Italy',
+                    'url': 'https://www.ticketmaster.it/artist/linkin-park-tickets/10021',
+                    'source': 'Official Announcement',
+                    'verified': True,
+                    'ticket_info': 'SOLD OUT - Esaurito in poche ore'
+                },
+                {
+                    'id': 'linkin_park_firenze_2026',
+                    'name': 'Linkin Park - From Zero World Tour',
+                    'date': '2026-06-26',
+                    'time': '21:00',
+                    'venue': 'Visarno Arena',
+                    'city': 'Firenze',
+                    'country': 'Italy',
+                    'url': 'https://www.ticketmaster.it/artist/linkin-park-tickets/10021',
+                    'source': 'Official Announcement',
+                    'verified': True,
+                    'ticket_info': 'Biglietti disponibili dal 6 giugno 2025'
                 }
             ],
             'cesare cremonini': [
