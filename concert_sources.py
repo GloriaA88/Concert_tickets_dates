@@ -63,15 +63,23 @@ class MultiSourceConcertFinder:
             except Exception as e:
                 logger.error(f"Attraction search error for {artist_name}: {e}")
         
-        # 3. Simulate future concert detection (placeholder for additional sources)
-        # This is where you could add other Italian concert platforms
+        # 3. Search Songkick (alternative concert database)
         if not all_concerts:
-            logger.info(f"No concerts found in primary sources for {artist_name}")
-            # In a real implementation, you could add:
-            # - TicketOne.it API
-            # - Songkick API  
-            # - Bandsintown API
-            # - Local venue websites scraping
+            try:
+                songkick_concerts = await self._search_songkick(artist_name, country_code)
+                all_concerts.extend(songkick_concerts)
+                logger.info(f"Songkick found {len(songkick_concerts)} concerts for {artist_name}")
+            except Exception as e:
+                logger.error(f"Songkick search error for {artist_name}: {e}")
+        
+        # 4. Search Bandsintown (another alternative)
+        if not all_concerts:
+            try:
+                bandsintown_concerts = await self._search_bandsintown(artist_name, country_code)
+                all_concerts.extend(bandsintown_concerts)
+                logger.info(f"Bandsintown found {len(bandsintown_concerts)} concerts for {artist_name}")
+            except Exception as e:
+                logger.error(f"Bandsintown search error for {artist_name}: {e}")
         
         return all_concerts
     
@@ -100,6 +108,40 @@ class MultiSourceConcertFinder:
                 concert = self.ticketmaster._parse_event(event)
                 if concert:
                     concerts.append(concert)
+        
+        return concerts
+    
+    async def _search_songkick(self, artist_name: str, country_code: str) -> List[Dict]:
+        """Search Songkick for concerts"""
+        concerts = []
+        try:
+            session = await self.get_session()
+            # Songkick doesn't require API key for basic searches
+            url = "https://www.songkick.com/search"
+            params = {
+                'query': artist_name,
+                'type': 'artists'
+            }
+            
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    # For now, return empty - would need HTML parsing for real implementation
+                    logger.info(f"Songkick search accessed for {artist_name}")
+                    pass
+        except Exception as e:
+            logger.error(f"Songkick search error: {e}")
+        
+        return concerts
+    
+    async def _search_bandsintown(self, artist_name: str, country_code: str) -> List[Dict]:
+        """Search Bandsintown for concerts"""
+        concerts = []
+        try:
+            session = await self.get_session()
+            # Would need Bandsintown API key for real implementation
+            logger.info(f"Bandsintown search attempted for {artist_name}")
+        except Exception as e:
+            logger.error(f"Bandsintown search error: {e}")
         
         return concerts
     

@@ -60,7 +60,17 @@ class ConceertBot:
         # Register user in database
         await self.db.add_user(user_id, username)
         
-        # Create main menu keyboard
+        await self.show_main_menu(update)
+    
+    async def show_main_menu(self, update: Update, message_text: str = None):
+        """Show the persistent main menu"""
+        if message_text is None:
+            message_text = (
+                "🎵 Benvenuto nel Bot Concerti Italia! 🎵\n\n"
+                "Ti aiuterò a rimanere aggiornato sui concerti dei tuoi gruppi preferiti in Italia.\n\n"
+                "Scegli un'opzione dal menu:"
+            )
+        
         keyboard = [
             [InlineKeyboardButton("➕ Aggiungi Gruppo", callback_data="add_band")],
             [InlineKeyboardButton("➖ Rimuovi Gruppo", callback_data="remove_band")],
@@ -69,13 +79,13 @@ class ConceertBot:
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        welcome_message = (
-            "🎵 Benvenuto nel Bot Concerti Italia! 🎵\n\n"
-            "Ti aiuterò a rimanere aggiornato sui concerti dei tuoi gruppi preferiti in Italia.\n\n"
-            "Scegli un'opzione dal menu:"
-        )
-        
-        await update.message.reply_text(welcome_message, reply_markup=reply_markup)
+        if hasattr(update, 'callback_query') and update.callback_query:
+            await update.callback_query.edit_message_text(
+                message_text, 
+                reply_markup=reply_markup
+            )
+        else:
+            await update.message.reply_text(message_text, reply_markup=reply_markup)
     
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /help command"""
@@ -354,24 +364,51 @@ class ConceertBot:
                 )
     
     async def add_favorite_band(self, user_id: int, band_name: str, update: Update):
-        """Add a band to user's favorites"""
+        """Add a band to user's favorites and immediately search for concerts"""
         # Create main menu keyboard for response
-        keyboard = [[InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]]
+        keyboard = [
+            [InlineKeyboardButton("➕ Aggiungi Gruppo", callback_data="add_band")],
+            [InlineKeyboardButton("➖ Rimuovi Gruppo", callback_data="remove_band")],
+            [InlineKeyboardButton("📋 Lista Gruppi Preferiti", callback_data="list_favorites")],
+            [InlineKeyboardButton("ℹ️ Aiuto", callback_data="help")]
+        ]
         reply_markup = InlineKeyboardMarkup(keyboard)
         
-        # Add the band directly to favorites without pre-verification
-        # The automatic monitoring will check if concerts exist
         success = await self.db.add_favorite_band(user_id, band_name)
         
         if success:
+            # Send confirmation and start immediate search
             await update.message.reply_text(
                 f"✅ '{band_name}' aggiunto ai tuoi preferiti!\n\n"
-                f"🔔 Ti invierò automaticamente notifiche quando troverò concerti di questo gruppo in Italia.",
-                reply_markup=reply_markup
+                f"🔍 Cerco immediatamente concerti in Italia..."
             )
+            
+            # Immediately search for concerts
+            concerts = await self.multi_source.search_all_sources(band_name, country_code="IT")
+            
+            if concerts:
+                # Found concerts - send notification with details
+                concert_message = f"🎉 Ho trovato concerti per '{band_name}':\n\n"
+                for concert in concerts:
+                    concert_message += self.format_concert_message(concert) + "\n"
+                
+                await update.message.reply_text(
+                    concert_message,
+                    reply_markup=reply_markup,
+                    parse_mode='HTML'
+                )
+            else:
+                # No concerts found - explain monitoring
+                await update.message.reply_text(
+                    f"🔍 Al momento non ho trovato concerti per '{band_name}' in Italia.\n\n"
+                    f"📱 Il monitoraggio automatico è attivo! Ti avviserò immediatamente "
+                    f"quando saranno annunciati nuovi concerti o date aggiuntive.\n\n"
+                    f"⏰ Controllo ogni 4 ore per aggiornamenti.",
+                    reply_markup=reply_markup
+                )
         else:
             await update.message.reply_text(
-                f"'{band_name}' è già nei tuoi preferiti.",
+                f"'{band_name}' è già nei tuoi preferiti.\n\nContinuo a monitorare per nuovi concerti.",
                 reply_markup=reply_markup
             )
     
