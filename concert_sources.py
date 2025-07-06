@@ -7,6 +7,8 @@ from typing import List, Dict, Optional
 from datetime import datetime, timedelta
 import re
 from comprehensive_concert_db import ComprehensiveConcertDatabase
+from official_concert_scraper import OfficialConcertScraper
+from verified_concert_database import VerifiedConcertDatabase
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +21,8 @@ class MultiSourceConcertFinder:
         self.ticketmaster = ticketmaster_api
         self.session = None
         self.comprehensive_db = ComprehensiveConcertDatabase()
+        self.official_scraper = OfficialConcertScraper()
+        self.verified_db = VerifiedConcertDatabase()
     
     async def get_session(self):
         """Get or create aiohttp session"""
@@ -30,14 +34,37 @@ class MultiSourceConcertFinder:
         """Close the aiohttp session"""
         if self.session and not self.session.closed:
             await self.session.close()
+        await self.official_scraper.close_session()
     
     async def search_all_sources(self, artist_name: str, country_code: str = "IT") -> List[Dict]:
         """
-        Search all available sources for concerts - ONLY authentic TicketMaster data
+        Search all available sources for concerts - Official websites + TicketMaster data
         """
         all_concerts = []
         
-        # 1. PRIORITY: TicketMaster API (primary and ONLY source for authentic data)
+        # 1. PRIORITY: Verified concert database (manually verified authentic data)
+        try:
+            verified_concerts = self.verified_db.search_concerts(artist_name, country_code)
+            if verified_concerts:
+                all_concerts.extend(verified_concerts)
+                logger.info(f"Verified database found {len(verified_concerts)} authentic concerts for {artist_name}")
+                # Return immediately if we found verified concerts - these are the most reliable
+                return verified_concerts
+        except Exception as e:
+            logger.error(f"Verified database search error for {artist_name}: {e}")
+        
+        # 2. FALLBACK: Official band websites (web scraping)
+        try:
+            official_concerts = await self.official_scraper.search_official_concerts(artist_name, country_code)
+            if official_concerts:
+                all_concerts.extend(official_concerts)
+                logger.info(f"Official website found {len(official_concerts)} authentic concerts for {artist_name}")
+                # Return immediately if we found official concerts - these are the most reliable
+                return official_concerts
+        except Exception as e:
+            logger.error(f"Official website search error for {artist_name}: {e}")
+        
+        # 3. FALLBACK: TicketMaster API (if no official data found)
         try:
             tm_concerts = await self.ticketmaster.search_concerts(artist_name, country_code)
             for concert in tm_concerts:
