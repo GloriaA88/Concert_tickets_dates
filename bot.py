@@ -58,30 +58,51 @@ class ConceertBot:
         # Register user in database
         await self.db.add_user(user_id, username)
         
+        # Create main menu keyboard
+        keyboard = [
+            [InlineKeyboardButton("➕ Aggiungi Gruppo", callback_data="add_band")],
+            [InlineKeyboardButton("➖ Rimuovi Gruppo", callback_data="remove_band")],
+            [InlineKeyboardButton("📋 Lista Gruppi Preferiti", callback_data="list_favorites")],
+            [InlineKeyboardButton("🔍 Cerca Concerti", callback_data="find_concerts")],
+            [InlineKeyboardButton("ℹ️ Aiuto", callback_data="help")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
         welcome_message = (
-            "🎵 Welcome to the Italian Concert Bot! 🎵\n\n"
-            "I'll help you stay updated on concerts by your favorite bands in Italy.\n\n"
-            "Use /help to see all available commands."
+            "🎵 Benvenuto nel Bot Concerti Italia! 🎵\n\n"
+            "Ti aiuterò a rimanere aggiornato sui concerti dei tuoi gruppi preferiti in Italia.\n\n"
+            "Scegli un'opzione dal menu:"
         )
         
-        await update.message.reply_text(welcome_message)
+        await update.message.reply_text(welcome_message, reply_markup=reply_markup)
     
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /help command"""
+        # Create main menu keyboard
+        keyboard = [
+            [InlineKeyboardButton("➕ Aggiungi Gruppo", callback_data="add_band")],
+            [InlineKeyboardButton("➖ Rimuovi Gruppo", callback_data="remove_band")],
+            [InlineKeyboardButton("📋 Lista Gruppi Preferiti", callback_data="list_favorites")],
+            [InlineKeyboardButton("🔍 Cerca Concerti", callback_data="find_concerts")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
         help_text = (
-            "🎵 Italian Concert Bot Commands:\n\n"
-            "📝 Managing Favorites:\n"
-            "/addfavorite - Add a band to your favorites\n"
-            "/removefavorite - Remove a band from favorites\n"
-            "/listfavorites - Show your favorite bands\n\n"
-            "🔍 Finding Concerts:\n"
-            "/findconcerts - Search for concerts by your favorite bands\n\n"
-            "ℹ️ Other:\n"
-            "/help - Show this help message\n\n"
-            "💡 Tip: I automatically check for new concerts and notify you when I find them!"
+            "🎵 Bot Concerti Italia - Aiuto\n\n"
+            "📝 Gestione Preferiti:\n"
+            "• Aggiungi gruppi ai tuoi preferiti\n"
+            "• Rimuovi gruppi dalla lista\n"
+            "• Visualizza la lista dei tuoi gruppi preferiti\n\n"
+            "🔍 Ricerca Concerti:\n"
+            "• Cerca concerti dei tuoi gruppi preferiti in Italia\n\n"
+            "🔔 Notifiche Automatiche:\n"
+            "• Controllo automatico ogni 4 ore\n"
+            "• Notifiche immediate per nuovi concerti\n"
+            "• Link diretto per acquistare i biglietti\n\n"
+            "Usa il menu qui sotto per iniziare:"
         )
         
-        await update.message.reply_text(help_text)
+        await update.message.reply_text(help_text, reply_markup=reply_markup)
     
     async def add_favorite_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /addfavorite command"""
@@ -169,49 +190,188 @@ class ConceertBot:
     
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle text messages (band names)"""
-        # This could be used for adding favorites via text input
-        pass
+        user_id = update.effective_user.id
+        
+        # Check if user is in a state where we expect band name input
+        if context.user_data.get('expecting_band_name'):
+            band_name = update.message.text.strip()
+            
+            # Clear the state
+            context.user_data['expecting_band_name'] = False
+            
+            # Add the band to favorites
+            await self.add_favorite_band(user_id, band_name, update)
+        else:
+            # Show main menu if user sends any other text
+            keyboard = [
+                [InlineKeyboardButton("➕ Aggiungi Gruppo", callback_data="add_band")],
+                [InlineKeyboardButton("➖ Rimuovi Gruppo", callback_data="remove_band")],
+                [InlineKeyboardButton("📋 Lista Gruppi Preferiti", callback_data="list_favorites")],
+                [InlineKeyboardButton("🔍 Cerca Concerti", callback_data="find_concerts")],
+                [InlineKeyboardButton("ℹ️ Aiuto", callback_data="help")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await update.message.reply_text(
+                "🎵 Bot Concerti Italia\n\nScegli un'opzione dal menu:",
+                reply_markup=reply_markup
+            )
     
     async def button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle button callbacks"""
         query = update.callback_query
         await query.answer()
         
-        if query.data.startswith("remove_"):
+        user_id = query.from_user.id
+        
+        if query.data == "add_band":
+            await query.edit_message_text(
+                "➕ Aggiungi un nuovo gruppo\n\n"
+                "Scrivi il nome del gruppo che vuoi aggiungere ai tuoi preferiti:"
+            )
+            # Set user state to expect band name input
+            context.user_data['expecting_band_name'] = True
+            
+        elif query.data == "remove_band":
+            favorites = await self.db.get_user_favorites(user_id)
+            if favorites:
+                keyboard = []
+                for band in favorites:
+                    keyboard.append([InlineKeyboardButton(
+                        f"🗑️ {band}", 
+                        callback_data=f"remove_{band}"
+                    )])
+                keyboard.append([InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")])
+                
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await query.edit_message_text(
+                    "➖ Seleziona un gruppo da rimuovere:",
+                    reply_markup=reply_markup
+                )
+            else:
+                keyboard = [[InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await query.edit_message_text(
+                    "❌ Non hai ancora gruppi preferiti.\nUsa 'Aggiungi Gruppo' per aggiungerne uno!",
+                    reply_markup=reply_markup
+                )
+        
+        elif query.data == "list_favorites":
+            favorites = await self.db.get_user_favorites(user_id)
+            if favorites:
+                favorites_text = "📋 I tuoi gruppi preferiti:\n\n"
+                for i, band in enumerate(favorites, 1):
+                    favorites_text += f"{i}. 🎵 {band}\n"
+            else:
+                favorites_text = "❌ Non hai ancora gruppi preferiti.\nUsa 'Aggiungi Gruppo' per aggiungerne uno!"
+            
+            keyboard = [[InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.edit_message_text(favorites_text, reply_markup=reply_markup)
+        
+        elif query.data == "find_concerts":
+            favorites = await self.db.get_user_favorites(user_id)
+            if not favorites:
+                keyboard = [[InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                await query.edit_message_text(
+                    "❌ Non hai ancora gruppi preferiti.\nUsa 'Aggiungi Gruppo' per aggiungerne uno!",
+                    reply_markup=reply_markup
+                )
+                return
+            
+            await query.edit_message_text("🔍 Cercando concerti... Attendere prego.")
+            
+            all_concerts = []
+            for band in favorites:
+                concerts = await self.ticketmaster.search_concerts(band, country_code="IT")
+                all_concerts.extend(concerts)
+            
+            keyboard = [[InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            if all_concerts:
+                message = "🎵 Concerti trovati per i tuoi gruppi preferiti:\n\n"
+                for concert in all_concerts[:10]:  # Limit to 10 concerts
+                    message += self.format_concert_message(concert) + "\n"
+            else:
+                message = "😔 Nessun concerto trovato per i tuoi gruppi preferiti in Italia."
+            
+            await query.edit_message_text(message, parse_mode='HTML', reply_markup=reply_markup)
+        
+        elif query.data == "help":
+            await self.help_command(update, context)
+        
+        elif query.data == "main_menu":
+            # Show main menu
+            keyboard = [
+                [InlineKeyboardButton("➕ Aggiungi Gruppo", callback_data="add_band")],
+                [InlineKeyboardButton("➖ Rimuovi Gruppo", callback_data="remove_band")],
+                [InlineKeyboardButton("📋 Lista Gruppi Preferiti", callback_data="list_favorites")],
+                [InlineKeyboardButton("🔍 Cerca Concerti", callback_data="find_concerts")],
+                [InlineKeyboardButton("ℹ️ Aiuto", callback_data="help")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await query.edit_message_text(
+                "🎵 Bot Concerti Italia\n\nScegli un'opzione dal menu:",
+                reply_markup=reply_markup
+            )
+        
+        elif query.data.startswith("remove_"):
             band_name = query.data[7:]  # Remove "remove_" prefix
-            user_id = query.from_user.id
             
             success = await self.db.remove_favorite_band(user_id, band_name)
+            keyboard = [[InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
             if success:
-                await query.edit_message_text(f"✅ Removed '{band_name}' from your favorites!")
+                await query.edit_message_text(
+                    f"✅ '{band_name}' rimosso dai tuoi preferiti!",
+                    reply_markup=reply_markup
+                )
             else:
-                await query.edit_message_text(f"❌ Failed to remove '{band_name}'.")
+                await query.edit_message_text(
+                    f"❌ Errore nel rimuovere '{band_name}'.",
+                    reply_markup=reply_markup
+                )
     
     async def add_favorite_band(self, user_id: int, band_name: str, update: Update):
         """Add a band to user's favorites"""
         # First, verify the band exists in TicketMaster
         concerts = await self.ticketmaster.search_concerts(band_name, limit=1)
         
+        # Create main menu keyboard for response
+        keyboard = [[InlineKeyboardButton("🔙 Menu Principale", callback_data="main_menu")]]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
         if not concerts:
             await update.message.reply_text(
-                f"⚠️ Could not find '{band_name}' in TicketMaster. "
-                f"Please check the spelling and try again."
+                f"⚠️ Non ho trovato '{band_name}' su TicketMaster. "
+                f"Controlla l'ortografia e riprova.",
+                reply_markup=reply_markup
             )
             return
         
         success = await self.db.add_favorite_band(user_id, band_name)
         
         if success:
-            await update.message.reply_text(f"✅ Added '{band_name}' to your favorites!")
+            await update.message.reply_text(
+                f"✅ '{band_name}' aggiunto ai tuoi preferiti!",
+                reply_markup=reply_markup
+            )
         else:
-            await update.message.reply_text(f"'{band_name}' is already in your favorites.")
+            await update.message.reply_text(
+                f"'{band_name}' è già nei tuoi preferiti.",
+                reply_markup=reply_markup
+            )
     
     def format_concert_message(self, concert: dict) -> str:
         """Format a concert into a readable message"""
-        name = concert.get('name', 'Unknown Event')
-        date = concert.get('date', 'TBD')
-        venue = concert.get('venue', 'Unknown Venue')
-        city = concert.get('city', 'Unknown City')
+        name = concert.get('name', 'Evento Sconosciuto')
+        date = concert.get('date', 'Da Definire')
+        venue = concert.get('venue', 'Venue Sconosciuto')
+        city = concert.get('city', 'Città Sconosciuta')
         url = concert.get('url', '')
         
         message = f"🎵 <b>{name}</b>\n"
@@ -219,7 +379,7 @@ class ConceertBot:
         message += f"📍 {venue}, {city}\n"
         
         if url:
-            message += f"🎫 <a href='{url}'>Buy Tickets</a>\n"
+            message += f"🎫 <a href='{url}'>Acquista Biglietti</a>\n"
         
         return message
     
@@ -228,7 +388,7 @@ class ConceertBot:
         if not concerts:
             return
         
-        message = "🎵 New concerts found for your favorite bands!\n\n"
+        message = "🎵 Nuovi concerti trovati per i tuoi gruppi preferiti!\n\n"
         
         for concert in concerts:
             message += self.format_concert_message(concert) + "\n"

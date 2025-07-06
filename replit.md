@@ -75,8 +75,13 @@ The application follows a modular architecture with clear separation of concerns
 
 ## Changelog
 
-- July 06, 2025. Initial setup
+- July 06, 2025: Initial setup
+- July 06, 2025: Updated bot interface to complete Italian language
+- July 06, 2025: Implemented interactive menu system with inline keyboards
+- July 06, 2025: Added button-based navigation matching user's design requirements
 
 ## User Preferences
 
 Preferred communication style: Simple, everyday language.
+Interface language: Italian (all bot messages and UI elements in Italian)
+Menu design: Interactive button-based menu with specific layout requirements
