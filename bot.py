@@ -555,23 +555,44 @@ class ConceertBot:
                 concerts = await self.multi_source.search_all_sources(band_name, country_code="IT")
                 
                 if concerts:
-                    # Filter only future concerts
+                    # Filter only future concerts with improved date handling
                     from datetime import datetime, date
                     today = date.today()
                     future_concerts = []
                     
                     for concert in concerts:
                         try:
-                            concert_date = datetime.strptime(concert['date'], '%Y-%m-%d').date()
-                            if concert_date >= today:
+                            # Handle different date formats
+                            concert_date_str = concert.get('date', '')
+                            if concert_date_str:
+                                # Try multiple date formats
+                                for date_format in ['%Y-%m-%d', '%d/%m/%Y', '%m/%d/%Y', '%Y-%m-%d %H:%M:%S']:
+                                    try:
+                                        concert_date = datetime.strptime(concert_date_str.split(' ')[0], date_format).date()
+                                        break
+                                    except ValueError:
+                                        continue
+                                else:
+                                    # If no format works, skip this concert
+                                    logger.warning(f"Could not parse date: {concert_date_str}")
+                                    continue
+                                
+                                # Only include future concerts
+                                if concert_date > today:  # Changed from >= to > to exclude today
+                                    future_concerts.append(concert)
+                                else:
+                                    logger.info(f"Skipping past concert: {concert.get('name')} on {concert_date}")
+                            else:
+                                # If no date, include it (might be TBD events)
                                 future_concerts.append(concert)
-                        except:
-                            # If date parsing fails, include the concert anyway
-                            future_concerts.append(concert)
+                        except Exception as e:
+                            logger.error(f"Error filtering concert date: {e}")
+                            # Skip concerts with date errors
+                            continue
                     
                     if future_concerts:
                         # Format and send concert information
-                        concerts_text = f"🎵 **Concerti trovati per {band_name}:**\n\n"
+                        concerts_text = f"🎵 <b>Concerti trovati per {band_name}:</b>\n\n"
                         
                         for concert in future_concerts[:5]:  # Show max 5 concerts
                             concerts_text += self.format_concert_message(concert) + "\n\n"
@@ -587,7 +608,7 @@ class ConceertBot:
                         ]
                         reply_markup = InlineKeyboardMarkup(keyboard)
                         
-                        await query.edit_message_text(concerts_text, reply_markup=reply_markup, parse_mode='Markdown')
+                        await query.edit_message_text(concerts_text, reply_markup=reply_markup, parse_mode='HTML')
                     else:
                         await query.edit_message_text(
                             f"📅 Nessun concerto futuro trovato per '{band_name}' in Italia.\n\n"

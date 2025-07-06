@@ -78,9 +78,9 @@ class TicketMasterAPI:
                             limit: int = 20) -> List[Dict]:
         """Search for concerts by artist name in specified country"""
         
-        # Get date range for next 6 months
+        # Get date range for next 2 years (infinite-like range)
         start_date = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
-        end_date = (datetime.now() + timedelta(days=180)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        end_date = (datetime.now() + timedelta(days=730)).strftime("%Y-%m-%dT%H:%M:%SZ")
         
         # Try multiple search strategies for better results
         search_strategies = [
@@ -155,10 +155,10 @@ class TicketMasterAPI:
                         concerts.append(concert)
                 logger.info(f"Broad search found {len(concerts)} events for '{artist_name}'")
             
-            # Strategy 2: Try with extended date range (1 year)
+            # Strategy 2: Try with extended date range (2 years)
             if not concerts:
                 logger.info(f"Trying extended date range search for '{artist_name}'")
-                extended_end_date = (datetime.now() + timedelta(days=365)).strftime("%Y-%m-%dT%H:%M:%SZ")
+                extended_end_date = (datetime.now() + timedelta(days=730)).strftime("%Y-%m-%dT%H:%M:%SZ")
                 extended_params = {
                     'keyword': artist_name,
                     'countryCode': country_code,
@@ -180,6 +180,7 @@ class TicketMasterAPI:
             if not concerts:
                 logger.info(f"Trying attraction-based search for '{artist_name}'")
                 artist_info = await self.get_artist_info(artist_name)
+                extended_end_date = (datetime.now() + timedelta(days=730)).strftime("%Y-%m-%dT%H:%M:%SZ")
                 
                 if artist_info and artist_info.get('id'):
                     attraction_params = {
