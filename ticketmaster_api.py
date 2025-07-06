@@ -135,9 +135,11 @@ class TicketMasterAPI:
             else:
                 logger.info(f"No results found with strategy {i+1} for '{artist_name}'")
         
-        # If no concerts found with regular search, try broader search
+        # If no concerts found with regular search, try broader search strategies
         if not concerts:
             logger.info(f"Trying broader search for '{artist_name}'")
+            
+            # Strategy 1: Remove all filters except country
             broad_params = {
                 'keyword': artist_name,
                 'countryCode': country_code,
@@ -152,6 +154,50 @@ class TicketMasterAPI:
                     if concert:
                         concerts.append(concert)
                 logger.info(f"Broad search found {len(concerts)} events for '{artist_name}'")
+            
+            # Strategy 2: Try with extended date range (1 year)
+            if not concerts:
+                logger.info(f"Trying extended date range search for '{artist_name}'")
+                extended_end_date = (datetime.now() + timedelta(days=365)).strftime("%Y-%m-%dT%H:%M:%SZ")
+                extended_params = {
+                    'keyword': artist_name,
+                    'countryCode': country_code,
+                    'startDateTime': start_date,
+                    'endDateTime': extended_end_date,
+                    'size': limit
+                }
+                response = await self._make_request('events.json', extended_params)
+                
+                if response and response.get('_embedded', {}).get('events'):
+                    events = response.get('_embedded', {}).get('events', [])
+                    for event in events:
+                        concert = self._parse_event(event)
+                        if concert:
+                            concerts.append(concert)
+                    logger.info(f"Extended search found {len(concerts)} events for '{artist_name}'")
+            
+            # Strategy 3: Try searching by attraction first
+            if not concerts:
+                logger.info(f"Trying attraction-based search for '{artist_name}'")
+                artist_info = await self.get_artist_info(artist_name)
+                
+                if artist_info and artist_info.get('id'):
+                    attraction_params = {
+                        'attractionId': artist_info['id'],
+                        'countryCode': country_code,
+                        'startDateTime': start_date,
+                        'endDateTime': extended_end_date,
+                        'size': limit
+                    }
+                    response = await self._make_request('events.json', attraction_params)
+                    
+                    if response and response.get('_embedded', {}).get('events'):
+                        events = response.get('_embedded', {}).get('events', [])
+                        for event in events:
+                            concert = self._parse_event(event)
+                            if concert:
+                                concerts.append(concert)
+                        logger.info(f"Attraction-based search found {len(concerts)} events for '{artist_name}'")
         
         return concerts
     

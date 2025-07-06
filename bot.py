@@ -6,6 +6,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 from database import DatabaseManager
 from ticketmaster_api import TicketMasterAPI
+from concert_sources import MultiSourceConcertFinder
 from datetime import datetime
 import asyncio
 
@@ -16,6 +17,7 @@ class ConceertBot:
         self.config = config
         self.db = DatabaseManager(config.database_path)
         self.ticketmaster = TicketMasterAPI(config.ticketmaster_api_key)
+        self.multi_source = MultiSourceConcertFinder(self.ticketmaster)
         self.application = None
         
     async def initialize_database(self):
@@ -200,10 +202,19 @@ class ConceertBot:
             
             await update.message.reply_text(f"🎵 Cercando concerti per: {', '.join(favorites)}")
             
-            # Check concerts for this specific user
+            # Check concerts for this specific user using multiple sources
             new_concerts = []
             for band in favorites:
-                concerts = await self.ticketmaster.search_concerts(band, country_code="IT")
+                concerts = await self.multi_source.search_all_sources(band, country_code="IT")
+                
+                # For testing, if no real concerts found, create a sample to show how notifications work
+                if not concerts:
+                    sample_concert = self.multi_source.create_sample_concert(band)
+                    concerts = [sample_concert]
+                    await update.message.reply_text(
+                        f"⚠️ Nessun concerto reale trovato per '{band}'. "
+                        f"Invio esempio di notifica per mostrare come funziona il sistema."
+                    )
                 
                 # For testing, don't check if already notified
                 new_concerts.extend(concerts)
@@ -213,7 +224,13 @@ class ConceertBot:
                 await self.send_concert_notification(user_id, new_concerts)
                 await update.message.reply_text(f"✅ Test completato! Trovati {len(new_concerts)} concerti. Notifica inviata.")
             else:
-                await update.message.reply_text("😔 Nessun concerto trovato al momento per i tuoi gruppi preferiti in Italia. Il monitoraggio automatico continuerà ogni 4 ore.")
+                # Provide more helpful debugging information
+                await update.message.reply_text(
+                    "😔 Nessun concerto trovato al momento per i tuoi gruppi preferiti in Italia.\n\n"
+                    "⚠️ Nota: TicketMaster potrebbe non avere tutti i concerti italiani. "
+                    "Il monitoraggio automatico continua ogni 4 ore e controllerà anche altre fonti quando disponibili.\n\n"
+                    "💡 Suggerimento: Verifica che il nome del gruppo sia scritto esattamente come appare sui biglietti ufficiali."
+                )
                 
         except Exception as e:
             logger.error(f"Error in test command: {e}")
@@ -365,13 +382,21 @@ class ConceertBot:
         venue = concert.get('venue', 'Venue Sconosciuto')
         city = concert.get('city', 'Città Sconosciuta')
         url = concert.get('url', '')
+        source = concert.get('source', 'Unknown')
+        is_verified = concert.get('verified', True)
+        note = concert.get('note', '')
         
         message = f"🎵 <b>{name}</b>\n"
         message += f"📅 {date}\n"
         message += f"📍 {venue}, {city}\n"
         
-        if url:
+        if url and is_verified:
             message += f"🎫 <a href='{url}'>Acquista Biglietti</a>\n"
+        elif not is_verified:
+            message += f"💡 {note}\n"
+        
+        if not is_verified:
+            message += f"🔍 Fonte: {source}\n"
         
         return message
     
@@ -407,7 +432,7 @@ class ConceertBot:
                 
                 new_concerts = []
                 for band in favorites:
-                    concerts = await self.ticketmaster.search_concerts(band, country_code="IT")
+                    concerts = await self.multi_source.search_all_sources(band, country_code="IT")
                     
                     # Filter out concerts we've already notified about
                     for concert in concerts:
