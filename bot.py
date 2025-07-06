@@ -750,6 +750,10 @@ class ConceertBot:
         if not is_verified:
             message += f"🔍 Fonte: {source}\n"
         
+        # Add version marker to ensure fresh data
+        from datetime import datetime
+        message += f"\n🔄 Aggiornato: {datetime.now().strftime('%H:%M')}"
+        
         return message
     
     def _format_date_italian(self, date_str: str) -> str:
