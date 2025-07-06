@@ -64,53 +64,16 @@ class MultiSourceConcertFinder:
         except Exception as e:
             logger.error(f"Official website search error for {artist_name}: {e}")
         
-        # 3. FALLBACK: TicketMaster API (if no official data found)
-        try:
-            tm_concerts = await self.ticketmaster.search_concerts(artist_name, country_code)
-            for concert in tm_concerts:
-                concert['source'] = 'TicketMaster'
-                concert['verified'] = True
-            all_concerts.extend(tm_concerts)
-            logger.info(f"TicketMaster found {len(tm_concerts)} authentic concerts for {artist_name}")
-        except Exception as e:
-            logger.error(f"TicketMaster search error for {artist_name}: {e}")
-        
-        # 3. Try attraction-based search with the found artist ID
-        if not all_concerts:
-            try:
-                artist_info = await self.ticketmaster.get_artist_info(artist_name)
-                if artist_info and artist_info.get('id'):
-                    logger.info(f"Found artist ID {artist_info['id']} for {artist_name}, searching by attraction...")
-                    attraction_concerts = await self._search_by_attraction_id(
-                        artist_info['id'], country_code
-                    )
-                    for concert in attraction_concerts:
-                        concert['source'] = 'TicketMaster-Attraction'
-                        concert['verified'] = True
-                    all_concerts.extend(attraction_concerts)
-                    logger.info(f"Attraction search found {len(attraction_concerts)} concerts")
-            except Exception as e:
-                logger.error(f"Attraction search error for {artist_name}: {e}")
+        # REMOVED: TicketMaster API fallback that was causing date conflicts
+        # Only verified data is now used to prevent incorrect dates from external APIs
         
         # REMOVED: Legacy known concert data (could conflict with verified database)
         
-        # 5. Search Songkick (alternative concert database) - only if still no results
-        if not all_concerts:
-            try:
-                songkick_concerts = await self._search_songkick(artist_name, country_code)
-                all_concerts.extend(songkick_concerts)
-                logger.info(f"Songkick found {len(songkick_concerts)} concerts for {artist_name}")
-            except Exception as e:
-                logger.error(f"Songkick search error for {artist_name}: {e}")
+        # REMOVED: All external API searches that could return incorrect dates
+        # Only verified database and official website data is used
         
-        # 6. Search Bandsintown (another alternative) - only if still no results
         if not all_concerts:
-            try:
-                bandsintown_concerts = await self._search_bandsintown(artist_name, country_code)
-                all_concerts.extend(bandsintown_concerts)
-                logger.info(f"Bandsintown found {len(bandsintown_concerts)} concerts for {artist_name}")
-            except Exception as e:
-                logger.error(f"Bandsintown search error for {artist_name}: {e}")
+            logger.info(f"No authentic concerts found for {artist_name} in verified sources")
         
         return all_concerts
     
