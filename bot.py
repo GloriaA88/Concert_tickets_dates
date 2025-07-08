@@ -35,6 +35,9 @@ class ConceertBot:
         self.application.add_handler(CommandHandler("removefavorite", self.remove_favorite_command))
         self.application.add_handler(CommandHandler("listfavorites", self.list_favorites_command))
         self.application.add_handler(CommandHandler("test", self.test_notifications_command))  # Test command
+        self.application.add_handler(CommandHandler("explore", self.explore_concerts_command))
+        self.application.add_handler(CommandHandler("venues", self.venue_finder_command))
+        self.application.add_handler(CommandHandler("stats", self.concert_stats_command))
         self.application.add_handler(CallbackQueryHandler(self.button_callback))
         
         # Add message handler for band names
@@ -65,6 +68,19 @@ class ConceertBot:
         
         await self.show_main_menu(update)
     
+    def get_main_menu_keyboard(self):
+        """Get the main menu keyboard layout"""
+        return InlineKeyboardMarkup([
+            [InlineKeyboardButton("➕ Aggiungi Gruppo", callback_data="add_band")],
+            [InlineKeyboardButton("➖ Rimuovi Gruppo", callback_data="remove_band")],
+            [InlineKeyboardButton("📋 Lista Gruppi Preferiti", callback_data="list_favorites")],
+            [InlineKeyboardButton("🔍 Esplora Concerti", callback_data="explore_concerts")],
+            [InlineKeyboardButton("🏟️ Venue Popolari", callback_data="venues")],
+            [InlineKeyboardButton("📊 Statistiche", callback_data="concert_stats")],
+            [InlineKeyboardButton("📊 Stato Monitoraggio", callback_data="monitoring_status")],
+            [InlineKeyboardButton("ℹ️ Aiuto", callback_data="help")]
+        ])
+
     async def show_main_menu(self, update: Update, message_text: str = None):
         """Show the persistent main menu"""
         if message_text is None:
@@ -78,14 +94,7 @@ class ConceertBot:
                 "Scegli un'opzione dal menu:"
             )
         
-        keyboard = [
-            [InlineKeyboardButton("➕ Aggiungi Gruppo", callback_data="add_band")],
-            [InlineKeyboardButton("➖ Rimuovi Gruppo", callback_data="remove_band")],
-            [InlineKeyboardButton("📋 Lista Gruppi Preferiti", callback_data="list_favorites")],
-            [InlineKeyboardButton("📊 Stato Monitoraggio", callback_data="monitoring_status")],
-            [InlineKeyboardButton("ℹ️ Aiuto", callback_data="help")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        reply_markup = self.get_main_menu_keyboard()
         
         if hasattr(update, 'callback_query') and update.callback_query:
             await update.callback_query.edit_message_text(
@@ -327,6 +336,250 @@ class ConceertBot:
                 f"❌ Errore durante il test: {e}",
                 reply_markup=reply_markup
             )
+
+    async def explore_concerts_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Explore trending concerts and events in Italy"""
+        await update.message.reply_text("🔍 Sto cercando i concerti più popolari in Italia...")
+        
+        try:
+            # Get popular music events in Italy using the new API methods
+            api = self.config.get_ticketmaster_api()
+            
+            # Get trending events in Italy
+            trending_events = await api.get_events_with_params(
+                countryCode='IT',
+                classificationName='Music',
+                size=10,
+                sort='date,asc'
+            )
+            
+            concerts_found = []
+            if trending_events and trending_events.get('_embedded', {}).get('events'):
+                events = trending_events.get('_embedded', {}).get('events', [])
+                
+                for event in events:
+                    concert = api._parse_event(event)
+                    if concert:
+                        concerts_found.append(concert)
+            
+            if concerts_found:
+                message = "🎵 <b>Concerti Trending in Italia</b>\n\n"
+                for i, concert in enumerate(concerts_found[:5], 1):  # Show top 5
+                    date_formatted = self._format_date_italian(concert['date'])
+                    message += f"{i}. 🎤 <b>{concert['name']}</b>\n"
+                    message += f"📅 {date_formatted}\n"
+                    message += f"📍 {concert['venue']}, {concert['city']}\n"
+                    if concert.get('url'):
+                        message += f"🎫 <a href='{concert['url']}'>Biglietti</a>\n"
+                    message += "\n"
+                
+                keyboard = [
+                    [InlineKeyboardButton("🔙 Torna al Menu", callback_data="main_menu")]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                
+                await update.message.reply_text(
+                    message, 
+                    parse_mode='HTML',
+                    reply_markup=reply_markup,
+                    disable_web_page_preview=True
+                )
+            else:
+                await update.message.reply_text(
+                    "🔍 Nessun concerto trending trovato al momento.\n"
+                    "Prova ad aggiungere artisti ai tuoi preferiti per monitorare i loro concerti!",
+                    reply_markup=self.get_main_menu_keyboard()
+                )
+            
+            await api.close_session()
+            
+        except Exception as e:
+            logger.error(f"Error in explore concerts: {e}")
+            await update.message.reply_text(
+                "❌ Errore durante la ricerca dei concerti trending.",
+                reply_markup=self.get_main_menu_keyboard()
+            )
+
+    async def venue_finder_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Find popular venues in Italy"""
+        await update.message.reply_text("🏟️ Sto cercando i venue più popolari in Italia...")
+        
+        try:
+            api = self.config.get_ticketmaster_api()
+            venues = await api.get_venues_in_italy()
+            
+            if venues:
+                message = "🏟️ <b>Venue Popolari in Italia</b>\n\n"
+                for i, venue in enumerate(venues[:8], 1):  # Show top 8
+                    message += f"{i}. 🎪 <b>{venue['name']}</b>\n"
+                    message += f"📍 {venue['city']}\n"
+                    if venue.get('address'):
+                        message += f"🗺️ {venue['address']}\n"
+                    if venue.get('capacity') and venue['capacity'] > 0:
+                        message += f"👥 Capacità: {venue['capacity']:,}\n"
+                    message += "\n"
+                
+                keyboard = [
+                    [InlineKeyboardButton("🔙 Torna al Menu", callback_data="main_menu")]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                
+                await update.message.reply_text(
+                    message, 
+                    parse_mode='HTML',
+                    reply_markup=reply_markup
+                )
+            else:
+                await update.message.reply_text(
+                    "🔍 Nessun venue trovato al momento.",
+                    reply_markup=self.get_main_menu_keyboard()
+                )
+            
+            await api.close_session()
+            
+        except Exception as e:
+            logger.error(f"Error in venue finder: {e}")
+            await update.message.reply_text(
+                "❌ Errore durante la ricerca dei venue.",
+                reply_markup=self.get_main_menu_keyboard()
+            )
+
+    async def concert_stats_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Show concert statistics and bot status"""
+        try:
+            user_id = update.effective_user.id
+            
+            # Get user stats
+            favorites = await self.db.get_user_favorites(user_id)
+            activation_date = await self.db.get_user_activation_date(user_id)
+            
+            # Get verified concerts count
+            verified_db = self.multi_source.verified_db
+            all_verified = verified_db.get_all_verified_concerts()
+            
+            # Get scheduler status
+            next_check = self.scheduler.get_next_check_time() if hasattr(self, 'scheduler') else "Non disponibile"
+            
+            message = "📊 <b>Statistiche Bot Concerti</b>\n\n"
+            message += f"👤 <b>Il Tuo Profilo:</b>\n"
+            message += f"• Artisti monitorati: {len(favorites)}\n"
+            message += f"• Data attivazione: {activation_date or 'Non disponibile'}\n\n"
+            
+            message += f"🎵 <b>Database Concerti:</b>\n"
+            message += f"• Concerti verificati: {len(all_verified)}\n"
+            message += f"• Prossimo controllo: {next_check}\n\n"
+            
+            message += f"🔧 <b>Stato Sistema:</b>\n"
+            message += f"• Bot operativo: ✅\n"
+            message += f"• Monitoraggio attivo: ✅\n"
+            message += f"• API TicketMaster: ✅\n\n"
+            
+            if favorites:
+                message += f"🎤 <b>I Tuoi Artisti:</b>\n"
+                for artist in favorites[:5]:  # Show first 5
+                    message += f"• {artist}\n"
+                if len(favorites) > 5:
+                    message += f"• ... e altri {len(favorites) - 5}\n"
+            
+            keyboard = [
+                [InlineKeyboardButton("🔙 Torna al Menu", callback_data="main_menu")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await update.message.reply_text(
+                message, 
+                parse_mode='HTML',
+                reply_markup=reply_markup
+            )
+            
+        except Exception as e:
+            logger.error(f"Error in concert stats: {e}")
+            await update.message.reply_text(
+                "❌ Errore durante il recupero delle statistiche.",
+                reply_markup=self.get_main_menu_keyboard()
+            )
+
+    async def smart_concert_discovery(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Smart concert discovery using multiple search strategies"""
+        await update.message.reply_text("🧠 Ricerca intelligente concerti in Italia...")
+        
+        try:
+            api = self.config.get_ticketmaster_api()
+            discovered_concerts = []
+            
+            # Strategy 1: Get general popular events
+            popular_events = await api.get_general_events(size=5)
+            if popular_events and popular_events.get('_embedded', {}).get('events'):
+                for event in popular_events['_embedded']['events']:
+                    if event.get('_embedded', {}).get('venues'):
+                        for venue in event['_embedded']['venues']:
+                            if venue.get('country', {}).get('countryCode') == 'IT':
+                                concert = api._parse_event(event)
+                                if concert:
+                                    discovered_concerts.append(concert)
+            
+            # Strategy 2: Search for trending artists
+            trending_artists = ['Imagine Dragons', 'Coldplay', 'Arctic Monkeys', 'Radiohead', 'Muse']
+            for artist in trending_artists:
+                events = await api.get_events_with_params(
+                    keyword=artist,
+                    countryCode='IT',
+                    size=2
+                )
+                if events and events.get('_embedded', {}).get('events'):
+                    for event in events['_embedded']['events']:
+                        concert = api._parse_event(event)
+                        if concert:
+                            discovered_concerts.append(concert)
+            
+            # Remove duplicates and sort by date
+            unique_concerts = []
+            seen_ids = set()
+            for concert in discovered_concerts:
+                concert_id = f"{concert['name']}_{concert['date']}_{concert['venue']}"
+                if concert_id not in seen_ids:
+                    unique_concerts.append(concert)
+                    seen_ids.add(concert_id)
+            
+            # Sort by date
+            unique_concerts.sort(key=lambda x: x.get('date', ''))
+            
+            if unique_concerts:
+                message = "🧠 <b>Scoperta Intelligente Concerti Italia</b>\n\n"
+                for i, concert in enumerate(unique_concerts[:8], 1):
+                    date_formatted = self._format_date_italian(concert['date'])
+                    message += f"{i}. 🎤 <b>{concert['name']}</b>\n"
+                    message += f"📅 {date_formatted}\n"
+                    message += f"📍 {concert['venue']}, {concert['city']}\n"
+                    if concert.get('url'):
+                        message += f"🎫 <a href='{concert['url']}'>Biglietti</a>\n"
+                    message += "\n"
+                
+                keyboard = [
+                    [InlineKeyboardButton("🔙 Torna al Menu", callback_data="main_menu")]
+                ]
+                reply_markup = InlineKeyboardMarkup(keyboard)
+                
+                await update.message.reply_text(
+                    message,
+                    parse_mode='HTML',
+                    reply_markup=reply_markup,
+                    disable_web_page_preview=True
+                )
+            else:
+                await update.message.reply_text(
+                    "🔍 Nessun concerto scoperto al momento con la ricerca intelligente.",
+                    reply_markup=self.get_main_menu_keyboard()
+                )
+            
+            await api.close_session()
+            
+        except Exception as e:
+            logger.error(f"Error in smart discovery: {e}")
+            await update.message.reply_text(
+                "❌ Errore durante la scoperta intelligente.",
+                reply_markup=self.get_main_menu_keyboard()
+            )
     
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle text messages (band names)"""
@@ -425,24 +678,21 @@ class ConceertBot:
             # Show monitoring status
             await self.show_monitoring_status(update, user_id)
         
+        elif query.data == "explore_concerts":
+            await self.explore_concerts_command(update, context)
+        
+        elif query.data == "venues":
+            await self.venue_finder_command(update, context)
+        
+        elif query.data == "concert_stats":
+            await self.concert_stats_command(update, context)
+        
         elif query.data == "help":
             await self.help_command(update, context)
         
         elif query.data == "main_menu":
-            # Show main menu
-            keyboard = [
-                [InlineKeyboardButton("➕ Aggiungi Gruppo", callback_data="add_band")],
-                [InlineKeyboardButton("➖ Rimuovi Gruppo", callback_data="remove_band")],
-                [InlineKeyboardButton("📋 Lista Gruppi Preferiti", callback_data="list_favorites")],
-                [InlineKeyboardButton("📊 Stato Monitoraggio", callback_data="monitoring_status")],
-                [InlineKeyboardButton("ℹ️ Aiuto", callback_data="help")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            
-            await query.edit_message_text(
-                "🎵 Bot Concerti Italia\n\nScegli un'opzione dal menu:",
-                reply_markup=reply_markup
-            )
+            # Show main menu using the centralized function
+            await self.show_main_menu(update)
         
         elif query.data == "concert_utilities":
             # Concert utilities menu for frequent concert-goers
