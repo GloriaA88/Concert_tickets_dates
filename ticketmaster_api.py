@@ -342,3 +342,44 @@ class TicketMasterAPI:
             venues.append(venue_info)
         
         return venues
+
+    async def get_general_events(self, size: int = 1) -> Optional[Dict]:
+        """
+        Get general events from TicketMaster API
+        Equivalent to: GET https://app.ticketmaster.com/discovery/v2/events.json?size=1&apikey=...
+        """
+        params = {
+            'size': size
+        }
+        
+        try:
+            response = await self._make_request('events.json', params)
+            return response
+        except Exception as e:
+            logger.error(f"Error getting general events: {e}")
+            return None
+
+    async def get_event_by_id(self, event_id: str) -> Optional[Dict]:
+        """
+        Get specific event by ID from TicketMaster API
+        Equivalent to: GET https://app.ticketmaster.com/discovery/v2/events/{event_id}.json?apikey=...
+        """
+        try:
+            endpoint = f"events/{event_id}.json"
+            response = await self._make_request(endpoint, {})
+            return response
+        except Exception as e:
+            logger.error(f"Error getting event {event_id}: {e}")
+            return None
+
+    async def get_events_with_params(self, **kwargs) -> Optional[Dict]:
+        """
+        Get events with custom parameters
+        Allows for flexible API calls with any parameters
+        """
+        try:
+            response = await self._make_request('events.json', kwargs)
+            return response
+        except Exception as e:
+            logger.error(f"Error getting events with custom params: {e}")
+            return None
