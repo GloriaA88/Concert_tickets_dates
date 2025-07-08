@@ -48,9 +48,22 @@ class MultiSourceConcertFinder:
         logger.info(f"Starting Italian concert search for {artist_name}")
         all_concerts = []
         
-        # DISABLED: Static database to prevent incorrect date display
-        # Only use real-time TicketMaster API data for authentic results
-        logger.info(f"Skipping static database - using only real-time API data for {artist_name}")
+        # 1. Check verified concert database (manually verified authentic Italian data)
+        try:
+            verified_concerts = self.verified_db.search_concerts(artist_name, country_code)
+            if verified_concerts:
+                # Additional filtering to ensure all concerts are in Italy and future dates
+                italian_future_concerts = [
+                    concert for concert in verified_concerts 
+                    if concert.get('country', '').upper() == 'ITALY' and 
+                    self._is_future_event(concert.get('date', ''))
+                ]
+                
+                if italian_future_concerts:
+                    all_concerts.extend(italian_future_concerts)
+                    logger.info(f"Verified database found {len(italian_future_concerts)} future Italian concerts for {artist_name}")
+        except Exception as e:
+            logger.error(f"Verified database search error for {artist_name}: {e}")
         
         # 2. Check TicketMaster API for real-time concert data
         try:
